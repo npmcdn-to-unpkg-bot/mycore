@@ -23,7 +23,6 @@
  **/
 package org.mycore.common;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -51,7 +50,7 @@ public class MCRInputStreamCloner {
 		//File tmpdir = new File(System.getProperty("java.io.tmpdir"));
 		streamSource = File.createTempFile("JavaStream", ".mycore");
 		//File is new and created
-		BufferedOutputStream fout = new BufferedOutputStream(new FileOutputStream(streamSource));
+		FileOutputStream fout = new FileOutputStream(streamSource);
 		if (!MCRUtils.copyStream(source, fout)) {
 			source.close(); //you can't use it safely again
 			fout.close();
@@ -67,6 +66,23 @@ public class MCRInputStreamCloner {
 		streamSource.deleteOnExit();
 	}
 
+	private static final File getStreamFile(File dir, int hash)
+		throws IOException {
+		File returns = null;
+		final String prefix = "javaStream";
+		if (!dir.canRead())
+			throw new IOException("Access denied(read): " + dir.getName());
+		if (!dir.canWrite())
+			throw new IOException("Access denied(write): " + dir.getName());
+		for (int i = 0; i < Integer.MAX_VALUE; i++) {
+			returns = new File(dir, prefix + hash + "-" + i + ".tmp");
+			if (!returns.exists()) {
+				returns.createNewFile();
+				break;
+			}
+		}
+		return returns;
+	}
 
 	public InputStream getNewInputStream() throws IOException {
 		if (!streamSource.exists())

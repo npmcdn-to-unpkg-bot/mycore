@@ -24,14 +24,10 @@
 
 package org.mycore.datamodel.ifs;
 
-import java.util.Hashtable;
-
-import org.apache.log4j.Logger;
-import org.mycore.common.MCRArgumentChecker;
-import org.mycore.common.MCRConfiguration;
-import org.mycore.common.MCRConfigurationException;
-import org.mycore.common.MCRException;
+import org.mycore.common.*;
 import org.mycore.services.query.MCRTextSearchInterface;
+
+import java.util.*;
 
 /**
  * This class manages instances of MCRContentStore and MCRAudioVideoExtender 
@@ -56,8 +52,6 @@ public class MCRContentStoreFactory {
 
 	/** The MCRContentStoreSelector implementation that will be used */
 	protected static MCRContentStoreSelector storeSelector;
-	private static final Logger logger =
-			Logger.getLogger(MCRContentStoreFactory.class);
 
 	/**
 	 * Returns the MCRContentStore instance that is configured for this
@@ -78,7 +72,6 @@ public class MCRContentStoreFactory {
 			try {
 				String storeClass =
 					"MCR.IFS.ContentStore." + storeID + ".Class";
-				logger.debug("getting StoreClass: "+storeClass);
 				Object obj =
 					MCRConfiguration.instance().getInstanceOf(storeClass);
 				MCRContentStore s = (MCRContentStore) (obj);
@@ -111,7 +104,8 @@ public class MCRContentStoreFactory {
 			getStore(s[i]);
 		if (indexStores.size()==0)
 			return new MCRTextSearchInterface[0];
-		return (MCRTextSearchInterface[]) indexStores.values().toArray(
+		else
+			return (MCRTextSearchInterface[]) indexStores.values().toArray(
 				new MCRTextSearchInterface[indexStores.size()]);
 	}
 
