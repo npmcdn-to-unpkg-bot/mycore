@@ -164,8 +164,5 @@ class MCRClassificationManager
   
   protected String getCachingID( MCRCategoryItem category )
     { return category.getClassificationID() + "@@" + category.getID(); }
-
-  protected String [] getAllClassificationID()
-    { return store.getAllClassificationID(); }
   }
 
