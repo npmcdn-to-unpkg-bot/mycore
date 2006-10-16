@@ -2,7 +2,7 @@
 
 <!-- =================================================================== -->
 <!-- MyCoRe-Indexing build file for use with ANT                         -->
-<!-- $Revision: 1.1 $ $Date: 2006-10-05 18:29:09 $                      -->
+<!-- $Revision: 1.1.2.2 $ $Date: 2006-10-16 16:56:25 $                      -->
 <!-- =================================================================== -->
 
 <project name="MyCoReModule - Indexing" default="usage" basedir=".">

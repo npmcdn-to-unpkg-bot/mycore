@@ -30,7 +30,7 @@ import com.ibm.mm.sdk.common.DKException;
 
 /**
  * @author Thomas Scheffler (yagee)
- * @version $Revision$Date: 07.09.2006 16:57:32 $
+ * @version $Revision$Date: 2006/09/08 10:21:00 $
  */
 public class MCRCM8MetaISO8601Date extends MCRAbstractCM8ComponentType {
     private static final int TIMESTAMP_LENGTH = 26;
