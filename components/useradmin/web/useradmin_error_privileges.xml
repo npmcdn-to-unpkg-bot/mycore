@@ -3,7 +3,7 @@
 
 <MyCoReWebPage>
 
-  <section i18n="component.useradmin.page.errorpriv.title" xml:lang="all">
+  <section title="Keine ausreichenden Privilegien" xml:lang="de">
     <table class="frame">
       <tr>
         <td>
@@ -15,7 +15,8 @@
               <tr align="center">
                 <td align="center">
                   <font color="red">
-                    <i18n key="component.useradmin.page.errorpriv.text"/>
+                    Dieser Nutzer bzw. diese Nutzerin besitzt für die gewünschte 
+                    Aktion nicht die notwendigen Privilegien!
                   </font>
                 </td>
               </tr>
@@ -25,6 +26,84 @@
           <br />
           <p></p>
         </td> 
+      </tr>
+    </table>
+  </section>
+
+  <section title="Insufficient privileges" xml:lang="en">
+    <table class="frame">
+      <tr>
+        <td>
+          <p></p>
+          <br />
+          <p></p>
+          <center>
+            <table width="80%">
+              <tr align="center">
+                <td align="center">
+                  <font color="red">
+                    This login has insufficient privileges to perform the desired action!
+                  </font>
+                </td>
+              </tr>
+            </table> 
+          </center>
+          <p></p>
+          <br />
+          <p></p>
+        </td>
+      </tr>
+    </table>
+  </section>
+
+  <section title="Insufficient privileges" xml:lang="ar">
+    <table class="frame">
+      <tr>
+        <td>
+          <p></p>
+          <br />
+          <p></p>
+          <center>
+            <table width="80%">
+              <tr align="center">
+                <td align="center">
+                  <font color="red">
+                    This login has insufficient privileges to perform the desired action!
+                  </font>
+                </td>
+              </tr>
+            </table> 
+          </center>
+          <p></p>
+          <br />
+          <p></p>
+        </td>
+      </tr>
+    </table>
+  </section>
+
+  <section title="Insufficient privileges" xml:lang="id">
+    <table class="frame">
+      <tr>
+        <td>
+          <p></p>
+          <br />
+          <p></p>
+          <center>
+            <table width="80%">
+              <tr align="center">
+                <td align="center">
+                  <font color="red">
+                    Dengan login ini aksi tersebut tidak bisa dilakukkan!
+                  </font>
+                </td>
+              </tr>
+            </table> 
+          </center>
+          <p></p>
+          <br />
+          <p></p>
+        </td>
       </tr>
     </table>
   </section>

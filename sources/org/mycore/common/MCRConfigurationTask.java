@@ -178,11 +178,7 @@ public class MCRConfigurationTask extends Task {
         }
         fileChanged = true;
         String prop = propLines.get(lineNumber).toString();
-        String newProp = prop;
-        if(prop.charAt(prop.length() - 1) != '=') {
-            newProp += ",";
-        }
-        newProp += value;
+        String newProp = prop + "," + value;
         propLines.remove(lineNumber);
         propLines.add(lineNumber, newProp);
         handleOutput(new StringBuffer(propertyFile.getName()).append(':').append(lineNumber).append(" added '").append(value).append("' to ").append(getKey())
@@ -252,10 +248,6 @@ public class MCRConfigurationTask extends Task {
                     }
                 }
                 i++;
-            }
-            if (lineNumber < 0) {
-                propLines.add(key + "=");
-                lineNumber = propLines.size() - 1;
             }
             propertiesLoaded = true;
         } catch (IOException e) {

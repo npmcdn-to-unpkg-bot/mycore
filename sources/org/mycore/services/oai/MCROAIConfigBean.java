@@ -15,7 +15,6 @@ public class MCROAIConfigBean {
 	private String oaiInstanceName;
 	private String repositoryName;
 	private String repositoryIdentifier;
-	private String oaiURLPath;
 	//	 you can define for each instance of your application a special restriction
 	private String queryRestriction;
 	//	 searchfields from searchfields.xml relevant for oai list set
@@ -51,7 +50,6 @@ public class MCROAIConfigBean {
     	}
     	this.repositoryIdentifier = config.getString("MCR.OAI.Repository.Identifier." + instance,"oai.mycore.de");
     	this.repositoryName = config.getString("MCR.OAI.Repository.Name." + instance,"MyCoRe Repository fuer Online Hochschulschriften");
-    	this.oaiURLPath = config.getString("MCR.OAI.Repository.URLPath." + instance, "servlets/MCROAIProvider");
 	}
 
 
@@ -113,16 +111,6 @@ public class MCROAIConfigBean {
 
 	public void setSearchFields(List<String> searchFields) {
 		this.searchFields = searchFields;
-	}
-
-
-	public String getOAIURLPath() {
-		return oaiURLPath;
-	}
-
-
-	public void setOAIURLPath(String oaiURLPath) {
-		this.oaiURLPath = oaiURLPath;
 	}
 
 }
