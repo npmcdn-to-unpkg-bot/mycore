@@ -1,9 +1,6 @@
 package org.mycore.frontend.servlets;
 
-import java.io.IOException;
-
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -12,7 +9,7 @@ import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRJSONUtils;
 import org.mycore.services.i18n.MCRTranslation;
 
-public class MCRLocaleServlet extends HttpServlet {
+public class MCRLocaleServlet extends MCRServlet {
 
     private static final long serialVersionUID = 1L;
 
@@ -44,25 +41,27 @@ public class MCRLocaleServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGetPost(MCRServletJob job) throws Exception {
         String returnValue;
-        String lang = getLang(req.getPathInfo());
+        HttpServletRequest request = job.getRequest();
+        HttpServletResponse response = job.getResponse();
+        String lang = getLang(request.getPathInfo());
         if (lang.length() < 2) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "\"type\" parameter and language is undefined");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "\"type\" parameter and language is undefined");
             return;
         }
-        String key = getKey(req.getPathInfo());
+        String key = getKey(request.getPathInfo());
         if (key.endsWith("*")) {
             returnValue = handlePrefetch(key.substring(0, key.length() - 1), lang);
-            resp.setContentType("text/json");
+            response.setContentType("text/json");
         } else {
             returnValue = handleGetI18n(key, lang);
-            resp.setContentType("text/plain");
+            response.setContentType("text/plain");
         }
-        MCRServlet.writeCacheHeaders(resp, cacheTime, startUpTime, true);
+        writeCacheHeaders(response, cacheTime, startUpTime, true);
 
-        resp.setCharacterEncoding(CHARSET);
-        resp.getWriter().print(returnValue);
+        response.setCharacterEncoding(CHARSET);
+        response.getWriter().print(returnValue);
     }
 
     private String getKey(String pathInfo) {
@@ -77,12 +76,12 @@ public class MCRLocaleServlet extends HttpServlet {
         boolean running = true;
         for (int i = (pathInfo.charAt(0) == '/') ? 1 : 0; (i < pathInfo.length() && running); i++) {
             switch (pathInfo.charAt(i)) {
-                case '/':
-                    running = false;
-                    break;
-                default:
-                    lang.append(pathInfo.charAt(i));
-                    break;
+            case '/':
+                running = false;
+                break;
+            default:
+                lang.append(pathInfo.charAt(i));
+                break;
             }
         }
         return lang.toString();

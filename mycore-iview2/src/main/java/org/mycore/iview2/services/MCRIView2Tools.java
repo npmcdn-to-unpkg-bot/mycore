@@ -26,7 +26,6 @@ package org.mycore.iview2.services;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -208,20 +207,16 @@ public class MCRIView2Tools {
             }
             MCRTiledPictureProps imageProps = MCRTiledPictureProps.getInstance(iviewFile);
             if (zoomLevel < 0 || zoomLevel > imageProps.getZoomlevel()) {
-                throw new IndexOutOfBoundsException("Zoom level " + zoomLevel + " is not in range 0 - "
-                    + imageProps.getZoomlevel());
+                throw new IndexOutOfBoundsException("Zoom level " + zoomLevel + " is not in range 0 - " + imageProps.getZoomlevel());
             }
             double zoomFactor = Math.pow(2, (imageProps.getZoomlevel() - zoomLevel));
             int maxX = (int) Math.ceil((imageProps.getWidth() / zoomFactor) / MCRImage.getTileSize());
             int maxY = (int) Math.ceil((imageProps.getHeight() / zoomFactor) / MCRImage.getTileSize());
-            LOGGER.debug(MessageFormat.format("Image size:{0}x{1}, tiles:{2}x{3}", imageProps.getWidth(),
-                imageProps.getHeight(), maxX, maxY));
-            int imageType = getImageType(iviewImage, reader, zoomLevel, 0, 0);
-            int xDim = ((maxX - 1) * MCRImage.getTileSize() + readTile(iviewImage, reader, zoomLevel, maxX - 1, 0)
-                .getWidth());
-            int yDim = ((maxY - 1) * MCRImage.getTileSize() + readTile(iviewImage, reader, zoomLevel, 0, maxY - 1)
-                .getHeight());
-            BufferedImage resultImage = new BufferedImage(xDim, yDim, imageType);
+            LOGGER.debug(MessageFormat.format("Image size:{0}x{1}, tiles:{2}x{3}", imageProps.getWidth(), imageProps.getHeight(), maxX, maxY));
+            BufferedImage sampleTile = readTile(iviewImage, reader, zoomLevel, maxX - 1, 0);
+            int xDim = ((maxX - 1) * MCRImage.getTileSize() + sampleTile.getWidth());
+            int yDim = ((maxY - 1) * MCRImage.getTileSize() + readTile(iviewImage, reader, zoomLevel, 0, maxY - 1).getHeight());
+            BufferedImage resultImage = new BufferedImage(xDim, yDim, sampleTile.getType());
             graphics = resultImage.getGraphics();
             for (int x = 0; x < maxX; x++) {
                 for (int y = 0; y < maxY; y++) {
@@ -238,44 +233,28 @@ public class MCRIView2Tools {
         }
     }
 
-    public static ImageReader getTileImageReader() {
+    private static ImageReader getTileImageReader() {
         return ImageIO.getImageReadersByMIMEType("image/jpeg").next();
     }
 
-    public static BufferedImage readTile(ZipFile iviewImage, ImageReader imageReader, int zoomLevel, int x, int y)
-        throws IOException {
+    private static BufferedImage readTile(ZipFile iviewImage, ImageReader imageReader, int zoomLevel, int x, int y) throws IOException {
         String tileName = MessageFormat.format("{0}/{1}/{2}.jpg", zoomLevel, y, x);
         ZipEntry tile = iviewImage.getEntry(tileName);
         if (tile != null) {
-            try (InputStream zin = iviewImage.getInputStream(tile);) {
+            InputStream zin = iviewImage.getInputStream(tile);
+            try {
                 ImageInputStream iis = ImageIO.createImageInputStream(zin);
                 imageReader.setInput(iis, false);
                 BufferedImage image = imageReader.read(0);
                 imageReader.reset();
                 iis.close();
                 return image;
+            } finally {
+                zin.close();
             }
         } else {
             LOGGER.warn("Did not find " + tileName + " in " + iviewImage.getName());
             return null;
-        }
-    }
-
-    public static int getImageType(ZipFile iviewImage, ImageReader imageReader, int zoomLevel, int x, int y)
-        throws IOException {
-        String tileName = MessageFormat.format("{0}/{1}/{2}.jpg", zoomLevel, y, x);
-        ZipEntry tile = iviewImage.getEntry(tileName);
-        if (tile != null) {
-            try (InputStream zin = iviewImage.getInputStream(tile)) {
-                ImageInputStream iis = ImageIO.createImageInputStream(zin);
-                imageReader.setInput(iis, false);
-                int imageType = MCRImage.getImageType(imageReader);
-                imageReader.reset();
-                iis.close();
-                return imageType;
-            }
-        } else {
-            throw new FileNotFoundException("Did not find " + tileName + " in " + iviewImage.getName());
         }
     }
 
@@ -300,8 +279,8 @@ public class MCRIView2Tools {
         if (!MCRIView2Tools.isFileSupported(file)) {
             return null;
         }
-        String params = MCRXMLFunctions.encodeURIPath(MessageFormat.format(
-            "jumpback=true&maximized=true&page={0}&derivate={1}", file.getAbsolutePath(), file.getOwnerID()));
+        String params = MCRXMLFunctions.encodeURIPath(MessageFormat.format("jumpback=true&maximized=true&page={0}&derivate={1}", file.getAbsolutePath(),
+                file.getOwnerID()));
         String url = MessageFormat.format("{0}receive/{1}?{2}", MCRServlet.getBaseURL(), file.getMCRObjectID(), params);
 
         return url;

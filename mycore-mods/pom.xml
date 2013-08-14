@@ -3,7 +3,7 @@
   <parent>
     <artifactId>mycore</artifactId>
     <groupId>org.mycore</groupId>
-    <version>2013.09-SNAPSHOT</version>
+    <version>2013.06.0.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -25,8 +25,8 @@
           </execution>
         </executions>
         <configuration>
-          <targetEditorDirectory>${project.build.outputDirectory}/META-INF/resources/editor</targetEditorDirectory>
-          <webDirectory>${project.build.outputDirectory}/META-INF/resources</webDirectory>
+          <targetEditorDirectory>${project.build.outputDirectory}/components/mods/web/editor</targetEditorDirectory>
+          <webDirectory>${project.build.outputDirectory}/components/mods/web</webDirectory>
           <layoutDefinitions>
             <layoutDefinition>
               <objectType>mods</objectType>
@@ -72,7 +72,7 @@
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
+      <artifactId>servlet-api</artifactId>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

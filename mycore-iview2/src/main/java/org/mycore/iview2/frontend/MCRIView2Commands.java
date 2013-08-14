@@ -23,7 +23,6 @@
 
 package org.mycore.iview2.frontend;
 
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,16 +30,13 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import javax.imageio.ImageReader;
 import javax.xml.ws.Endpoint;
 
 import org.apache.log4j.Logger;
-import org.jdom2.JDOMException;
 import org.mycore.common.MCRException;
 import org.mycore.datamodel.common.MCRXMLMetadataManager;
 import org.mycore.datamodel.ifs.MCRDirectory;
@@ -49,8 +45,7 @@ import org.mycore.datamodel.ifs.MCRFilesystemNode;
 import org.mycore.datamodel.metadata.MCRMetadataManager;
 import org.mycore.datamodel.metadata.MCRObjectID;
 import org.mycore.frontend.cli.MCRAbstractCommands;
-import org.mycore.frontend.cli.annotation.MCRCommand;
-import org.mycore.frontend.cli.annotation.MCRCommandGroup;
+import org.mycore.frontend.cli.MCRCommand;
 import org.mycore.imagetiler.MCRImage;
 import org.mycore.imagetiler.MCRTiledPictureProps;
 import org.mycore.iview2.services.MCRIView2Tools;
@@ -64,39 +59,104 @@ import org.mycore.iview2.services.webservice.MCRIView2RemoteFunctions;
  * @author Thomas Scheffler (yagee)
  *
  */
-
-@MCRCommandGroup(name="MCR IView2 Tile Commands")
 public class MCRIView2Commands extends MCRAbstractCommands {
+    private static final String CMD_CLASS = MCRIView2Commands.class.getCanonicalName() + ".";
+
+    // check tiles
+    private static final MCRCommand CHECK_ALL_IMAGES_COMMAND = new MCRCommand("check tiles of all derivates", CMD_CLASS
+            + "checkAll", "checks if all images have valid iview2 files and start tiling if not");
+
+    private static final MCRCommand CHECK_TILES_OF_DERIVATE_COMMAND = new MCRCommand(
+            "check tiles of derivate {0}",
+            CMD_CLASS + "checkTilesOfDerivate String",
+            "checks if all images of derivate {0} with a supported image type as main document have valid iview2 files and start tiling if not ");
+
+    private static final MCRCommand CHECK_TILES_OF_IMAGE_COMMAND = new MCRCommand("check tiles of image {0} {1}",
+            CMD_CLASS + "checkImage String String",
+            "checks if tiles a specific file identified by its derivate {0} and absolute path {1} are valid or generates new one");
+
+    // tile images
+    private static final MCRCommand TILE_ALL_IMAGES_COMMAND = new MCRCommand("tile images of all derivates", CMD_CLASS
+            + "tileAll", "tiles all images of all derivates with a supported image type as main document");
+
+    private static final MCRCommand TILE_OBJECT_TILES_COMMAND = new MCRCommand("tile images of object {0}", CMD_CLASS
+            + "tileDerivatesOfObject String",
+            "tiles all images of derivates of object {0} with a supported image type as main document");
+
+    private static final MCRCommand TILE_DERIVATE_TILES_COMMAND = new MCRCommand("tile images of derivate {0}",
+            CMD_CLASS + "tileDerivate String",
+            "tiles all images of derivate {0} with a supported image type as main document");
+
+    private static final MCRCommand TILE_IMAGE_COMMAND = new MCRCommand("tile image {0} {1}", CMD_CLASS
+            + "tileImage String String", "tiles a specific file identified by its derivate {0} and absolute path {1}");
+
+    // delete tiles
+    private static final MCRCommand DEL_ALL_TILES_COMMAND = new MCRCommand("delete all tiles", CMD_CLASS
+            + "deleteAllTiles", "removes all tiles of all derivates");
+
+    private static final MCRCommand DEL_OBJECT_TILES_COMMAND = new MCRCommand("delete tiles of object {0}", CMD_CLASS
+            + "deleteDerivateTilesOfObject String", "removes tiles of a specific file identified by its object ID {0}");
+
+    private static final MCRCommand DEL_DERIVATE_TILES_COMMAND = new MCRCommand("delete tiles of derivate {0}",
+            CMD_CLASS + "deleteDerivateTiles String",
+            "removes tiles of a specific file identified by its derivate ID {0}");
+
+    private static final MCRCommand DEL_IMAGE_TILES_COMMAND = new MCRCommand("delete tiles of image {0} {1}", CMD_CLASS
+            + "deleteImageTiles String String",
+            "removes tiles of a specific file identified by its derivate ID {0} and absolute path {1}");
+
+    // webservices
+    private static final MCRCommand START_TILE_WEBSERVICE_COMMAND = new MCRCommand(
+            "start tile webservice on {0}",
+            CMD_CLASS + "startTileWebService String",
+            "start a tile web service on adress {0}, e.g. 'http//localhost:8084/tileService', and stopping any other running service");
+
+    private static final MCRCommand STOP_TILE_WEBSERVICE_COMMAND = new MCRCommand("stop tile webservice", CMD_CLASS
+            + "stopTileWebService", "stops the tile web service");
+
     private static final MCRTilingQueue TILE_QUEUE = MCRTilingQueue.getInstance();
 
     private static final Logger LOGGER = Logger.getLogger(MCRIView2Commands.class);
 
     private static Endpoint tileService;
 
+    public MCRIView2Commands() {
+        addCommand(CHECK_ALL_IMAGES_COMMAND);
+        addCommand(CHECK_TILES_OF_DERIVATE_COMMAND);
+        addCommand(CHECK_TILES_OF_IMAGE_COMMAND);
+        addCommand(TILE_ALL_IMAGES_COMMAND);
+        addCommand(TILE_OBJECT_TILES_COMMAND);
+        addCommand(TILE_DERIVATE_TILES_COMMAND);
+        addCommand(TILE_IMAGE_COMMAND);
+        addCommand(DEL_ALL_TILES_COMMAND);
+        addCommand(DEL_OBJECT_TILES_COMMAND);
+        addCommand(DEL_DERIVATE_TILES_COMMAND);
+        addCommand(DEL_IMAGE_TILES_COMMAND);
+        addCommand(START_TILE_WEBSERVICE_COMMAND);
+        addCommand(STOP_TILE_WEBSERVICE_COMMAND);
+    }
+
     /**
      * meta command to tile all images of all derivates.
      * @return list of commands to execute.
      */
-    // tile images
-    @MCRCommand(syntax="tile images of all derivates", help="tiles all images of all derivates with a supported image type as main document", order=40)
     public static List<String> tileAll() {
-        return forAllDerivates(TILE_DERIVATE_TILES_COMMAND_SYNTAX);
+        return forAllDerivates(TILE_DERIVATE_TILES_COMMAND);
     }
 
     /**
      * meta command to check (and repair) tiles of all images of all derivates.
      * @return list of commands to execute.
      */
-    @MCRCommand(syntax="check tiles of all derivates", help="checks if all images have valid iview2 files and start tiling if not", order=10)
     public static List<String> checkAll() {
-        return forAllDerivates(CHECK_TILES_OF_DERIVATE_COMMAND_SYNTAX);
+        return forAllDerivates(CHECK_TILES_OF_DERIVATE_COMMAND);
     }
 
-    private static List<String> forAllDerivates(String batchCommandSyntax) {
+    private static List<String> forAllDerivates(MCRCommand command) {
         List<String> ids = MCRXMLMetadataManager.instance().listIDsOfType("derivate");
         List<String> cmds = new ArrayList<String>(ids.size());
         for (String id : ids) {
-            cmds.add(MessageFormat.format(batchCommandSyntax, id));
+            cmds.add(MessageFormat.format(command.getSyntax(), id));
         }
         return cmds;
     }
@@ -106,35 +166,29 @@ public class MCRIView2Commands extends MCRAbstractCommands {
      * @param objectID a object ID
      * @return list of commands to execute.
      */
-    @MCRCommand(syntax="tile images of object {0}", help="tiles all images of derivates of object {0} with a supported image type as main document", order=50)
     public static List<String> tileDerivatesOfObject(String objectID) {
-        return forAllDerivatesOfObject(objectID, TILE_DERIVATE_TILES_COMMAND_SYNTAX);
+        return forAllDerivatesOfObject(objectID, TILE_DERIVATE_TILES_COMMAND);
     }
 
-    private static final String TILE_DERIVATE_TILES_COMMAND_SYNTAX = "tile images of derivate {0}";
     /**
      * meta command to tile all images of this derivate.
      * @param derivateID a derivate ID
      * @return list of commands to execute.
      */
-    @MCRCommand(syntax=TILE_DERIVATE_TILES_COMMAND_SYNTAX, help="tiles all images of derivate {0} with a supported image type as main document", order=60)
     public static List<String> tileDerivate(String derivateID) {
-        return forAllImages(derivateID, TILE_IMAGE_COMMAND_SYNTAX);
+        return forAllImages(derivateID, TILE_IMAGE_COMMAND);
     }
 
-    private static final String  CHECK_TILES_OF_DERIVATE_COMMAND_SYNTAX = "check tiles of derivate {0}";
     /**
      * meta command to check (and repair) all tiles of all images of this derivate.
      * @param derivateID a derivate ID
      * @return list of commands to execute.
      */
-    @MCRCommand(syntax=CHECK_TILES_OF_DERIVATE_COMMAND_SYNTAX, help="checks if all images of derivate {0} with a supported image type as main document have valid iview2 files and start tiling if not ", order=20)
-
     public static List<String> checkTilesOfDerivate(String derivateID) {
-        return forAllImages(derivateID, CHECK_TILES_OF_IMAGE_COMMAND_SYNTAX);
+        return forAllImages(derivateID, CHECK_TILES_OF_IMAGE_COMMAND);
     }
 
-    private static List<String> forAllImages(String derivateID, String batchCommandSyntax) {
+    private static List<String> forAllImages(String derivateID, MCRCommand command) {
         if (!MCRIView2Tools.isDerivateSupported(derivateID)) {
             LOGGER.info("Skipping tiling of derivate " + derivateID + " as it's main file is not supported by IView2.");
             return null;
@@ -150,20 +204,16 @@ public class MCRIView2Commands extends MCRAbstractCommands {
 
         List<MCRFile> supportedFiles = getSupportedFiles(derivate);
         for (MCRFile image : supportedFiles) {
-            returns.add(MessageFormat.format(batchCommandSyntax, derivateID, image.getAbsolutePath()));
+            returns.add(MessageFormat.format(command.getSyntax(), derivateID, image.getAbsolutePath()));
         }
         return returns;
     }
 
-    
-    private static final String CHECK_TILES_OF_IMAGE_COMMAND_SYNTAX = "check tiles of image {0} {1}";
-    
     /**
      * checks and repairs tile of this {@link MCRFile}
      * @param derivate derivate ID
      * @param absoluteImagePath absolute path to image file
      */
-    @MCRCommand(syntax=CHECK_TILES_OF_IMAGE_COMMAND_SYNTAX, help="checks if tiles a specific file identified by its derivate {0} and absolute path {1} are valid or generates new one", order=30)
     public static void checkImage(String derivate, String absoluteImagePath) {
         File iviewFile = MCRImage.getTiledFile(MCRIView2Tools.getTileDir(), derivate, absoluteImagePath);
         //file checks
@@ -203,26 +253,6 @@ public class MCRIView2Commands extends MCRAbstractCommands {
             tileImage(derivate, absoluteImagePath);
             return;
         }
-        try {
-            @SuppressWarnings("unused")
-            BufferedImage thumbnail = MCRIView2Tools.getZoomLevel(iviewFile, 0);
-            int maxX = (int) Math.ceil((double) props.getWidth() / MCRImage.getTileSize());
-            int maxY = (int) Math.ceil((double) props.getHeight() / MCRImage.getTileSize());
-            LOGGER.debug(MessageFormat.format("Image size:{0}x{1}, tiles:{2}x{3}", props.getWidth(), props.getHeight(),
-                maxX, maxY));
-            ImageReader imageReader = MCRIView2Tools.getTileImageReader();
-            try {
-                @SuppressWarnings("unused")
-                BufferedImage sampleTile = MCRIView2Tools.readTile(iviewImage, imageReader, props.getZoomlevel(),
-                    maxX - 1, 0);
-            } finally {
-                imageReader.dispose();
-            }
-        } catch (IOException | JDOMException e) {
-            LOGGER.warn("Could not read thumbnail of " + iviewFile.getAbsolutePath(), e);
-            tileImage(derivate, absoluteImagePath);
-            return;
-        }
     }
 
     private static void validateZipFile(ZipFile iviewImage) throws IOException {
@@ -247,13 +277,11 @@ public class MCRIView2Commands extends MCRAbstractCommands {
         }
     }
 
-    private static final String TILE_IMAGE_COMMAND_SYNTAX = "tile image {0} {1}";
     /**
      * Tiles this {@link MCRFile}.
      * @param derivate derivate ID
      * @param absoluteImagePath absolute path to image file
      */
-    @MCRCommand(syntax=TILE_IMAGE_COMMAND_SYNTAX, help="tiles a specific file identified by its derivate {0} and absolute path {1}", order=70)
     public static void tileImage(String derivate, String absoluteImagePath) {
         MCRTileJob job = new MCRTileJob();
         job.setDerivate(derivate);
@@ -288,7 +316,6 @@ public class MCRIView2Commands extends MCRAbstractCommands {
     /**
      * Deletes all image tiles.
      */
-    @MCRCommand(syntax="delete all tiles", help="removes all tiles of all derivates", order=80)
     public static void deleteAllTiles() {
         File storeDir = MCRIView2Tools.getTileDir();
         for (File sub : storeDir.listFiles()) {
@@ -304,12 +331,11 @@ public class MCRIView2Commands extends MCRAbstractCommands {
      * Deletes all image tiles of derivates of this object.
      * @param objectID a object ID
      */
-    @MCRCommand(syntax="delete tiles of object {0}", help="removes tiles of a specific file identified by its object ID {0}", order=90)
     public static List<String> deleteDerivateTilesOfObject(String objectID) {
-        return forAllDerivatesOfObject(objectID, DEL_DERIVATE_TILES_COMMAND_SYNTAX);
+        return forAllDerivatesOfObject(objectID, DEL_DERIVATE_TILES_COMMAND);
     }
 
-    private static List<String> forAllDerivatesOfObject(String objectID, String batchCommandSyntax) {
+    private static List<String> forAllDerivatesOfObject(String objectID, MCRCommand batchCommand) {
         MCRObjectID mcrobjid;
         try {
             mcrobjid = MCRObjectID.getInstance(objectID);
@@ -317,23 +343,21 @@ public class MCRIView2Commands extends MCRAbstractCommands {
             LOGGER.error("The object ID " + objectID + " is wrong");
             return null;
         }
-        List<MCRObjectID> derivateIds = MCRMetadataManager.getDerivateIds(mcrobjid, 0, TimeUnit.MILLISECONDS);
+        List<MCRObjectID> derivateIds = MCRMetadataManager.getDerivateIds(mcrobjid, 0);
         if (derivateIds == null) {
             LOGGER.error("Object does not exist: " + mcrobjid);
         }
         ArrayList<String> cmds = new ArrayList<>(derivateIds.size());
         for (MCRObjectID derId : derivateIds) {
-            cmds.add(MessageFormat.format(batchCommandSyntax, derId));
+            cmds.add(MessageFormat.format(batchCommand.getSyntax(), derId));
         }
         return cmds;
     }
 
-    private static final String DEL_DERIVATE_TILES_COMMAND_SYNTAX = "delete tiles of derivate {0}";
     /**
      * Deletes all image tiles of this derivate.
      * @param derivateID a derivate ID
      */
-    @MCRCommand(syntax=DEL_DERIVATE_TILES_COMMAND_SYNTAX, help="removes tiles of a specific file identified by its derivate ID {0}", order=100)
     public static void deleteDerivateTiles(String derivateID) {
         File derivateDir = MCRImage.getTiledFile(MCRIView2Tools.getTileDir(), derivateID, null);
         deleteDirectory(derivateDir);
@@ -345,7 +369,6 @@ public class MCRIView2Commands extends MCRAbstractCommands {
      * @param derivate derivate ID
      * @param absoluteImagePath absolute path to image file
      */
-    @MCRCommand(syntax="delete tiles of image {0} {1}", help="removes tiles of a specific file identified by its derivate ID {0} and absolute path {1}", order=110)
     public static void deleteImageTiles(String derivate, String absoluteImagePath) {
         File tileFile = MCRImage.getTiledFile(MCRIView2Tools.getTileDir(), derivate, absoluteImagePath);
         deleteFileAndEmptyDirectories(tileFile);
@@ -396,8 +419,6 @@ public class MCRIView2Commands extends MCRAbstractCommands {
      * Starts tile webservice ({@link MCRIView2RemoteFunctions}) on this address.
      * @param address a URI to bind web service to
      */
-    @MCRCommand(syntax="start tile webservice on {0}", help="start a tile web service on address {0}, e.g. 'http//localhost:8084/tileService', and stopping any other running service", order=120)
-
     public static void startTileWebService(String address) {
         stopTileWebService();
         tileService = Endpoint.publish(address, new MCRIView2RemoteFunctions());
@@ -406,7 +427,6 @@ public class MCRIView2Commands extends MCRAbstractCommands {
     /**
      * Stops web service started by {@link #startTileWebService(String)}.
      */
-    @MCRCommand(syntax="stop tile webservice", help="stops the tile web service", order=130)
     public static void stopTileWebService() {
         if (tileService == null || !tileService.isPublished()) {
             LOGGER.info("Currently there is no tiling service running");

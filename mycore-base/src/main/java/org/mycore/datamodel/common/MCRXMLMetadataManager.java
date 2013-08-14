@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
@@ -98,8 +97,8 @@ public class MCRXMLMetadataManager {
 
         private final MCRObjectID id;
 
-        private StoreModifiedHandle(MCRObjectID id, long time, TimeUnit unit) {
-            this.expire = unit.toMillis(time);
+        private StoreModifiedHandle(MCRObjectID id, long expire) {
+            this.expire = expire;
             this.id = id;
         }
 
@@ -246,7 +245,7 @@ public class MCRXMLMetadataManager {
                         setupStore(project, type, prefix);
                     } catch (Exception e) {
                         throw new MCRPersistenceException(MessageFormat.format(
-                                "Could not instantiate store for project {0} and object type {1}.", project, type), e);
+                            "Could not instantiate store for project {0} and object type {1}.", project, type), e);
                     }
                 }
             }
@@ -255,7 +254,7 @@ public class MCRXMLMetadataManager {
         MCRMetadataStore store = MCRStoreManager.getStore(projectType, MCRMetadataStore.class);
         if (store == null) {
             throw new MCRPersistenceException(MessageFormat.format("Metadata store for project {0} and object type {1} is unconfigured.",
-                    project, type));
+                project, type));
         }
         return store;
     }
@@ -509,11 +508,10 @@ public class MCRXMLMetadataManager {
      * 
      * @param mcrid the MCRObjectID 
      * @throws IOException 
-     * @returns null if metadata is not present 
      */
     public byte[] retrieveBLOB(MCRObjectID mcrid) throws IOException {
         MCRContent metadata = retrieveContent(mcrid);
-        return metadata == null ? null : metadata.asByteArray();
+        return metadata.asByteArray();
     }
 
     public MCRContent retrieveContent(MCRObjectID mcrid) throws IOException {
@@ -755,7 +753,7 @@ public class MCRXMLMetadataManager {
         return -1;
     }
 
-    public MCRCache.ModifiedHandle getLastModifiedHandle(final MCRObjectID id, final long expire, TimeUnit unit) {
-        return new StoreModifiedHandle(id, expire, unit);
+    public MCRCache.ModifiedHandle getLastModifiedHandle(final MCRObjectID id, final long expire) {
+        return new StoreModifiedHandle(id, expire);
     }
 }

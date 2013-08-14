@@ -33,7 +33,6 @@ import java.util.TooManyListenersException;
 import javax.xml.transform.Result;
 import javax.xml.transform.Templates;
 import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
@@ -47,6 +46,7 @@ import org.apache.xalan.transformer.TransformerImpl;
 import org.mycore.common.MCRCache;
 import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRConfigurationException;
+import org.mycore.common.MCRException;
 import org.mycore.common.content.MCRByteContent;
 import org.mycore.common.content.MCRContent;
 import org.mycore.common.content.streams.MCRByteArrayOutputStream;
@@ -82,8 +82,7 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
     private static MCRCache<String, MCRXSLTransformer> INSTANCE_CACHE = new MCRCache<String, MCRXSLTransformer>(100,
         "MCRXSLTransformer instance cache");
 
-    private static long CHECK_PERIOD = MCRConfiguration.instance().getLong("MCR.LayoutService.LastModifiedCheckPeriod",
-        60000);
+    private static long CHECK_PERIOD = MCRConfiguration.instance().getLong("MCR.LayoutService.LastModifiedCheckPeriod", 60000);
 
     /** The compiled XSL stylesheet */
     protected MCRTemplatesSource[] templateSources;
@@ -152,8 +151,7 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
                     SAXSource source = templateSources[i].getSource();
                     templates[i] = tFactory.newTemplates(source);
                     if (templates[i] == null) {
-                        throw new TransformerConfigurationException("XSLT Stylesheet could not be compiled: "
-                            + templateSources[i].getURL());
+                        throw new TransformerConfigurationException("XSLT Stylesheet could not be compiled: " + templateSources[i].getURL());
                     }
                     modified[i] = lastModified;
                 }
@@ -163,12 +161,12 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
     }
 
     @Override
-    public String getEncoding() throws TransformerException, SAXException {
+    public String getEncoding() {
         return getOutputProperty("encoding", "UTF-8");
     }
 
     @Override
-    public String getMimeType() throws TransformerException, SAXException {
+    public String getMimeType() {
         return getOutputProperty("media-type", "text/xml");
     }
 
@@ -214,8 +212,8 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
         }
     }
 
-    protected MCRContent transform(MCRContent source, XMLReader reader, TransformerHandler transformerHandler)
-        throws IOException, SAXException {
+    protected MCRContent transform(MCRContent source, XMLReader reader, TransformerHandler transformerHandler) throws IOException,
+        SAXException {
         MCRByteArrayOutputStream baos = new MCRByteArrayOutputStream(INITIAL_BUFFER_SIZE);
         StreamResult serializer = new StreamResult(baos);
         transformerHandler.setResult(serializer);
@@ -263,27 +261,30 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
         return reader;
     }
 
-    private String getOutputProperty(String propertyName, String defaultValue) throws TransformerException,
-        SAXException {
-        checkTemplateUptodate();
-        Templates lastTemplate = templates[templates.length - 1];
-        Properties outputProperties = lastTemplate.getOutputProperties();
-        if (outputProperties == null) {
-            return defaultValue;
+    private String getOutputProperty(String propertyName, String defaultValue) {
+        try {
+            checkTemplateUptodate();
+            Templates lastTemplate = templates[templates.length - 1];
+            Properties outputProperties = lastTemplate.getOutputProperties();
+            if (outputProperties == null) {
+                return defaultValue;
+            }
+            String value = outputProperties.getProperty(propertyName);
+            if (value == null) {
+                return defaultValue;
+            }
+            return value;
+        } catch (Exception e) {
+            throw new MCRException(e);
         }
-        String value = outputProperties.getProperty(propertyName);
-        if (value == null) {
-            return defaultValue;
-        }
-        return value;
     }
 
     /* (non-Javadoc)
      * @see org.mycore.common.content.transformer.MCRContentTransformer#getFileExtension()
      */
     @Override
-    public String getFileExtension() throws TransformerException, SAXException {
-        String fileExtension = super.fileExtension;
+    public String getFileExtension() {
+        String fileExtension = super.getFileExtension();
         if (fileExtension != null && !getDefaultExtension().equals(fileExtension)) {
             return fileExtension;
         }

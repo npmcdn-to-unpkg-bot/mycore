@@ -29,8 +29,7 @@ import org.apache.log4j.Logger;
 import org.jdom2.Document;
 import org.mycore.common.MCRUtils;
 import org.mycore.frontend.cli.MCRAbstractCommands;
-import org.mycore.frontend.cli.annotation.MCRCommand;
-import org.mycore.frontend.cli.annotation.MCRCommandGroup;
+import org.mycore.frontend.cli.MCRCommand;
 
 /**
  * This class builds a google sitemap containing links to all documents and
@@ -44,16 +43,26 @@ import org.mycore.frontend.cli.annotation.MCRCommandGroup;
  * @author Thomas Scheffler (yagee)
  * @version $Revision$ $Date$
  */
-@MCRCommandGroup(name="Google Sitemap Commands")
 public final class MCRGoogleSitemapCommands extends MCRAbstractCommands {
 
     /** The logger */
     private static Logger LOGGER = Logger.getLogger(MCRGoogleSitemapCommands.class.getName());
 
     /**
+     * The empty constructor.
+     */
+    public MCRGoogleSitemapCommands() {
+        super();
+
+        MCRCommand com = null;
+
+        com = new MCRCommand("build google sitemap", "org.mycore.frontend.indexbrowser.MCRGoogleSitemapCommands.buildSitemap", "Create the google sitemap(s) in the webapps directory.");
+        addCommand(com);
+    }
+
+    /**
      * The build and store method.
      */
-    @MCRCommand(syntax="build google sitemap", help="Creates the google sitemap(s) in webapps directory.", order=10)    
     public static void buildSitemap() throws Exception {
         // check time
         LOGGER.debug("Build Google sitemap start.");

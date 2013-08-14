@@ -3,13 +3,14 @@
   <parent>
     <artifactId>mycore</artifactId>
     <groupId>org.mycore</groupId>
-    <version>2013.09-SNAPSHOT</version>
+    <version>2013.06.0.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>mycore-iview2</artifactId>
   <name>MyCoRe IView2</name>
   <build>
+    
     <plugins>
       <plugin>
         <groupId>com.samaxes.maven</groupId>
@@ -23,7 +24,7 @@
               <verbose>true</verbose>
               <webappSourceDir>${basedir}/src/main/resources</webappSourceDir>
               <webappTargetDir>${project.build.outputDirectory}</webappTargetDir>
-              <cssSourceDir>META-INF/resources/modules/iview2/gfx/default</cssSourceDir>
+              <cssSourceDir>components/iview2/web/modules/iview2/gfx/default</cssSourceDir>
               <cssSourceFiles>
                 <cssSourceFile>../../lib/fg-menu/fg.menu.css</cssSourceFile>
                 <cssSourceFile>iview2.toolbar.css</cssSourceFile>
@@ -32,7 +33,7 @@
                 <cssSourceFile>style.css</cssSourceFile>
               </cssSourceFiles>
               <cssFinalFile>iview2.css</cssFinalFile>
-              <jsSourceDir>META-INF/resources/modules/iview2/js</jsSourceDir>
+              <jsSourceDir>components/iview2/web/modules/iview2/js</jsSourceDir>
               <jsSourceFiles>
                 <jsSourceFile>Utils.js</jsSourceFile>
                 <!--General Util Funktionen-->
@@ -178,7 +179,7 @@
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
+      <artifactId>servlet-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.hibernate</groupId>

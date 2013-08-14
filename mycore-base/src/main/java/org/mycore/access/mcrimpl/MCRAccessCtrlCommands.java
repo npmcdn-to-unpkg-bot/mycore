@@ -26,8 +26,7 @@ package org.mycore.access.mcrimpl;
 import org.apache.log4j.Logger;
 import org.mycore.access.MCRAccessManager;
 import org.mycore.frontend.cli.MCRAbstractCommands;
-import org.mycore.frontend.cli.annotation.MCRCommand;
-import org.mycore.frontend.cli.annotation.MCRCommandGroup;
+import org.mycore.frontend.cli.MCRCommand;
 
 /**
  * This class provides a set of commands for the org.mycore.access package which
@@ -35,9 +34,32 @@ import org.mycore.frontend.cli.annotation.MCRCommandGroup;
  * 
  * @author Arne Seifert
  */
-@MCRCommandGroup(name="MCR Access Control Commands")
 public class MCRAccessCtrlCommands extends MCRAbstractCommands {
     public static Logger logger = Logger.getLogger(MCRAccessCtrlCommands.class.getName());
+
+    /**
+     * constructor with commands.
+     */
+    public MCRAccessCtrlCommands() {
+        super();
+
+        MCRCommand com = null;
+
+        com = new MCRCommand("create accesstable", "org.mycore.access.MCRAccessCtrlCommands.createTables",
+                "The command creates all tables for the Access Control System.");
+        addCommand(com);
+
+        com = new MCRCommand("validate objectid {0} in pool {1}", "org.mycore.access.MCRAccessCtrlCommands.validate String String",
+                "Validates access for given object and given permission");
+        addCommand(com);
+    }
+
+    /**
+     * method creates sql tables
+     */
+    public static void createTables() {
+        MCRAccessStore.getInstance().createTables();
+    }
 
     /**
      * validates access for given object and given permission
@@ -47,7 +69,6 @@ public class MCRAccessCtrlCommands extends MCRAbstractCommands {
      * @param permission
      *            the access permission for the rule
      */
-    @MCRCommand(syntax="validate objectid {0} in pool {1}", help="Validates access for given object and given permission", order=10)
     public static void validate(String objid, String permission) {
         System.out.println("current user has access: " + MCRAccessManager.checkPermission(objid, permission));
     }

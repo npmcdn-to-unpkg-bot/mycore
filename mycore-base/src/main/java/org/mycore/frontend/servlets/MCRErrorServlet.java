@@ -32,7 +32,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import javax.xml.transform.TransformerException;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -45,7 +44,6 @@ import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.common.xml.MCRLayoutService;
-import org.xml.sax.SAXException;
 
 /**
  * @author Thomas Scheffler (yagee)
@@ -68,24 +66,17 @@ public class MCRErrorServlet extends HttpServlet {
         Integer statusCode = (Integer) req.getAttribute("javax.servlet.error.status_code");
         String message = (String) req.getAttribute("javax.servlet.error.message");
         @SuppressWarnings("unchecked")
-        Class<? extends Throwable> exceptionType = (Class<? extends Throwable>) req
-            .getAttribute("javax.servlet.error.exception_type");
+        Class<? extends Throwable> exceptionType = (Class<? extends Throwable>) req.getAttribute("javax.servlet.error.exception_type");
         Throwable exception = (Throwable) req.getAttribute("javax.servlet.error.exception");
         String requestURI = (String) req.getAttribute("javax.servlet.error.request_uri");
         String servletName = (String) req.getAttribute("javax.servlet.error.servletName");
         if (LOGGER.isDebugEnabled()) {
-            String msg = MessageFormat.format("Handling error {0} for request ''{1}'' message: {2}", statusCode,
-                requestURI, message);
+            String msg = MessageFormat.format("Handling error {0} for request ''{1}'' message: {2}", statusCode, requestURI, message);
             LOGGER.debug(msg, exception);
             LOGGER.debug("Has current session: " + MCRSessionMgr.hasCurrentSession());
         }
         if (acceptWebPage(req)) {
-            try {
-                generateErrorPage(req, resp, message, exception, statusCode, exceptionType, requestURI, servletName);
-            } catch (TransformerException | SAXException e) {
-                LOGGER.error("Could not generate error page", e);
-                resp.sendError(statusCode, message);
-            }
+            generateErrorPage(req, resp, message, exception, statusCode, exceptionType, requestURI, servletName);
         } else {
             LOGGER.info("Client does not accept HTML pages: " + req.getHeader("Accept"));
             resp.sendError(statusCode, message);
@@ -98,6 +89,7 @@ public class MCRErrorServlet extends HttpServlet {
      * @return
      */
     private boolean acceptWebPage(HttpServletRequest req) {
+        @SuppressWarnings("unchecked")
         Enumeration<String> acceptHeader = req.getHeaders("Accept");
         if (!acceptHeader.hasMoreElements()) {
             return true;
@@ -107,8 +99,7 @@ public class MCRErrorServlet extends HttpServlet {
             for (String acceptValue : acceptValues) {
                 String[] parsed = acceptValue.split(";");
                 String mediaRange = parsed[0].trim();
-                if (mediaRange.startsWith("text/html") || mediaRange.startsWith("text/*")
-                    || mediaRange.startsWith("*/")) {
+                if (mediaRange.startsWith("text/html") || mediaRange.startsWith("text/*") || mediaRange.startsWith("*/")) {
                     float quality = 1f; //default 'q=1.0'
                     for (int i = 1; i < parsed.length; i++) {
                         if (parsed[i].trim().startsWith("q=")) {
@@ -148,12 +139,11 @@ public class MCRErrorServlet extends HttpServlet {
         }
     }
 
-    protected void generateErrorPage(HttpServletRequest request, HttpServletResponse response, String msg,
-        Throwable ex, Integer statusCode, Class<? extends Throwable> exceptionType, String requestURI,
-        String servletName) throws IOException, TransformerException, SAXException {
+    protected void generateErrorPage(HttpServletRequest request, HttpServletResponse response, String msg, Throwable ex,
+        Integer statusCode, Class<? extends Throwable> exceptionType, String requestURI, String servletName) throws IOException {
         boolean exceptionThrown = ex != null;
-        LOGGER.log(exceptionThrown ? Level.ERROR : Level.WARN, MessageFormat.format(
-            "{0}: Error {1} occured. The following message was given: {2}", requestURI, statusCode, msg), ex);
+        LOGGER.log(exceptionThrown ? Level.ERROR : Level.WARN,
+            MessageFormat.format("{0}: Error {1} occured. The following message was given: {2}", requestURI, statusCode, msg), ex);
 
         String rootname = "mcr_error";
         String style = MCRServlet.getProperty(request, "XSL.Style");
@@ -231,8 +221,7 @@ public class MCRErrorServlet extends HttpServlet {
                 LOGGER.warn("Could not send error page. Generating error page failed. The original message:\n"
                     + request.getAttribute(requestAttr));
             } else {
-                LOGGER.warn("Could not send error page. Response allready commited. The following message was given:\n"
-                    + msg);
+                LOGGER.warn("Could not send error page. Response allready commited. The following message was given:\n" + msg);
             }
         }
     }

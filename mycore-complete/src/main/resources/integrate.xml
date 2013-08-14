@@ -1,6 +1,6 @@
 <project name="MyCoRe Components integration" xmlns:mcr="antlib:org.mycore.buildtools">
   <property name="components.order"
-    value="acl-editor,acl-editor2,broadcasting,buildtools,classbrowser,classeditor,classhandler,doubletfinder,indexing,iview2,migration21-22,session-listing,swf,mets,mods,user2,wcms,webcli,webservices,z3950,oai,solr"/>
+    value="acl-editor,broadcasting,buildtools,classbrowser,classeditor,classhandler,doubletfinder,indexing,iview2,migration21-22,session-listing,swf,mets,mods,user2,wcms,webcli,webservices,z3950,oai,solr"/>
   
   <import file="${integration.dir}/helper.xml"/>
   <taskdef resource="org/mycore/buildtools/antlib.xml" uri="antlib:org.mycore.buildtools" classpathref="integration.classpath" onerror="fail"/>
@@ -57,6 +57,16 @@
           </if>
         </sequential>
       </for>
+    </sequential>
+  </macrodef>
+  <macrodef name="merge.web.xml">
+    <attribute name="web.xml.file"/>
+    <sequential>
+      <echo level="info">Merging @{web.xml.file} into ${build.webapps}/WEB-INF/web.xml</echo>
+      <xmltask source="${build.webapps}/WEB-INF/web.xml" dest="${build.webapps}/WEB-INF/web.xml">
+        <insert path="/:web-app/:session-config" position="before" file="@{web.xml.file}"/>
+      </xmltask>
+      <replace file="${build.webapps}/WEB-INF/web.xml" token='xmlns=""'/>
     </sequential>
   </macrodef>
   <xmlcatalog id="hibernateDTD" classpathref="integration.classpath">
@@ -131,7 +141,7 @@
     </for>
     <replace file="${build.config}/searchfields.xml" token='xmlns=""' />
     <for param="table.class"
-      list="MCRACCESS,MCRACCESSRULE,MCRFSNODES,MCRLINKHREF,MCRURN,MCRDELETEDITEMS,MCRDNBTRANSFERRESULTS">
+      list="MCRACCESS,MCRACCESSRULE,MCRCSTORE,MCRFSNODES,MCRLINKHREF,MCRURN,MCRDELETEDITEMS,MCRDNBTRANSFERRESULTS">
       <sequential>
         <AddHibernateMapping class="org.mycore.backend.hibernate.tables.@{table.class}"/>
       </sequential>
@@ -153,6 +163,23 @@
   ================================= -->
   <target name="webapp" description="--> integrates component in web application">
     <componentPreHook target="webapp"/>
+    <copy tofile="${build.webapps}/WEB-INF/web.xml" file="${integration.dir}/config/web.xml" overwrite="true"/>
+    <copy todir="${build.webapps}">
+      <mapper type="regexp" from="^[^/\\]+[/\\]web[/\\](.*)$$" to="\1"/>
+      <fileset dir="${integration.dir}/components" includes="*/web/**"/>
+      <fileset dir="${integration.dir}" includes="web/**"/>
+    </copy>
+    <copy todir="${build.webapps}">
+      <fileset dir="${integration.dir}/web" includes="**"/>
+    </copy>
+    <for param="web.xml.file">
+      <fileset id="web.xml.components" dir="${integration.dir}/components">
+        <include name="*/config/web.xml"/>
+      </fileset>
+      <sequential>
+        <merge.web.xml web.xml.file="@{web.xml.file}"/>
+      </sequential>
+    </for>
     <componentHook target="webapp"/>
   </target>
   

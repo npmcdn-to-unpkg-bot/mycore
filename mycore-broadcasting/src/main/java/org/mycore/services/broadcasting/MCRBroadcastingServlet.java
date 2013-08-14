@@ -16,7 +16,6 @@ import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.TransformerException;
 
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -27,7 +26,6 @@ import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.frontend.servlets.MCRServlet;
 import org.mycore.frontend.servlets.MCRServletJob;
-import org.xml.sax.SAXException;
 
 public class MCRBroadcastingServlet extends MCRServlet {
 
@@ -39,7 +37,7 @@ public class MCRBroadcastingServlet extends MCRServlet {
         super.init();
     }
 
-    public void doGetPost(MCRServletJob job) throws IOException, ServletException, JDOMException, TransformerException, SAXException {
+    public void doGetPost(MCRServletJob job) throws IOException, ServletException, JDOMException {
 
         HttpServletRequest request = job.getRequest();
         HttpServletResponse response = job.getResponse();
@@ -122,7 +120,7 @@ public class MCRBroadcastingServlet extends MCRServlet {
             return session.getUserInformation().getUserID().trim();
     }
 
-    public void forwardJDOM(HttpServletRequest request, HttpServletResponse response, Element elem, boolean xslTransformation) throws IOException, TransformerException, SAXException {
+    public void forwardJDOM(HttpServletRequest request, HttpServletResponse response, Element elem, boolean xslTransformation) throws IOException {
         Element root = null;
         if (xslTransformation)
             root = new Element("mcr-module-broadcasting-admin");

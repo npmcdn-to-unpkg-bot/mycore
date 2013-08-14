@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
+import org.jdom2.Document;
 import org.jdom2.Element;
 import org.mycore.backend.hibernate.MCRHIBConnection;
 import org.mycore.common.MCRConfiguration;
@@ -71,7 +72,7 @@ public class MCRCommandLineInterface {
 
     private static boolean SKIP_FAILED_COMMAND = false;
 
-    private static MCRCommandManager knownCommands;
+    private static MCRKnownCommands knownCommands;
 
     /**
      * The main method that either shows up an interactive command prompt or
@@ -87,7 +88,7 @@ public class MCRCommandLineInterface {
         output("");
 
         output("Initializing...");
-        knownCommands = new MCRCommandManager();
+        knownCommands = new MCRKnownCommands();
         output("Initialization done.");
 
         output("Type 'help' to list all commands!");

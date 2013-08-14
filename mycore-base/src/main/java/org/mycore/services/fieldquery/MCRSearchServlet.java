@@ -37,7 +37,6 @@ import java.util.StringTokenizer;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.TransformerException;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
@@ -55,7 +54,6 @@ import org.mycore.parsers.bool.MCRAndCondition;
 import org.mycore.parsers.bool.MCRCondition;
 import org.mycore.parsers.bool.MCROrCondition;
 import org.mycore.parsers.bool.MCRSetCondition;
-import org.xml.sax.SAXException;
 
 /**
  * Executes queries and presents result pages. Queries can be submitted in four
@@ -297,7 +295,7 @@ public class MCRSearchServlet extends MCRServlet {
     }
 
     @Override
-    public void doGetPost(MCRServletJob job) throws IOException, ServletException, TransformerException, SAXException {
+    public void doGetPost(MCRServletJob job) throws IOException, ServletException {
         HttpServletRequest request = job.getRequest();
         HttpServletResponse response = job.getResponse();
 
@@ -326,7 +324,7 @@ public class MCRSearchServlet extends MCRServlet {
      * MCRSearchServlet?mode=results&numPerPage=10&page=1
      */
     protected void showResults(HttpServletRequest request, HttpServletResponse response) throws IOException,
-        ServletException, TransformerException, SAXException {
+        ServletException {
         // Get cached results
         String id = request.getParameter("id");
         MCRCachedQueryData qd = MCRCachedQueryData.getData(id);
@@ -340,13 +338,13 @@ public class MCRSearchServlet extends MCRServlet {
     }
 
     protected void showResults(HttpServletRequest request, HttpServletResponse response, MCRQuery query, Document input)
-        throws IOException, ServletException, TransformerException, SAXException {
+        throws IOException, ServletException {
         MCRCachedQueryData qd = MCRCachedQueryData.cache(query, input);
         showResults(request, response, qd);
     }
 
     private void showResults(HttpServletRequest request, HttpServletResponse response, MCRCachedQueryData qd)
-        throws IOException, TransformerException, SAXException {
+        throws IOException {
         MCRResults results = qd.getResults();
 
         // Number of hits per page
@@ -435,7 +433,7 @@ public class MCRSearchServlet extends MCRServlet {
      * browser to the first results page
      */
     protected void doQuery(HttpServletRequest request, HttpServletResponse response) throws IOException,
-        ServletException, TransformerException, SAXException {
+        ServletException {
         MCREditorSubmission sub = (MCREditorSubmission) request.getAttribute("MCREditorSubmission");
         String searchString = getReqParameter(request, "search", null);
         String queryString = getReqParameter(request, "query", null);
@@ -525,7 +523,7 @@ public class MCRSearchServlet extends MCRServlet {
       * 
       * see its overwritten in jspdocportal
       */
-    protected void sendToLayout(HttpServletRequest req, HttpServletResponse res, Document jdom) throws IOException, TransformerException, SAXException {
+    protected void sendToLayout(HttpServletRequest req, HttpServletResponse res, Document jdom) throws IOException {
         getLayoutService().doLayout(req, res, new MCRJDOMContent(jdom));
     }
 }

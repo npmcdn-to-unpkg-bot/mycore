@@ -77,12 +77,12 @@ public class MCRTransformerPipe extends MCRParameterizedTransformer {
     }
 
     @Override
-    public String getMimeType() throws Exception {
+    public String getMimeType() {
         return transformers.get(transformers.size() - 1).getMimeType();
     }
 
     @Override
-    public String getEncoding() throws Exception {
+    public String getEncoding() {
         return transformers.get(transformers.size() - 1).getEncoding();
     }
 
@@ -92,7 +92,7 @@ public class MCRTransformerPipe extends MCRParameterizedTransformer {
     }
 
     @Override
-    public String getFileExtension() throws Exception {
+    public String getFileExtension() {
         return transformers.get(transformers.size() - 1).getFileExtension();
     }
 

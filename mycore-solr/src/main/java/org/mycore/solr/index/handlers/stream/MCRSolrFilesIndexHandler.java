@@ -3,7 +3,6 @@ package org.mycore.solr.index.handlers.stream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServer;
@@ -85,7 +84,7 @@ public class MCRSolrFilesIndexHandler extends MCRSolrAbstractIndexHandler {
     }
 
     protected void indexObject(MCRObjectID objectID) {
-        List<MCRObjectID> derivateIds = MCRMetadataManager.getDerivateIds(objectID, 0, TimeUnit.MILLISECONDS);
+        List<MCRObjectID> derivateIds = MCRMetadataManager.getDerivateIds(objectID, 0);
         for (MCRObjectID derivateID : derivateIds) {
             indexDerivate(derivateID);
         }

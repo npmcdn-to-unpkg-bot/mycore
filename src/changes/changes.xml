@@ -3,138 +3,77 @@
   <properties>
     <title>MyCoRe Changes Report</title>
     <author email="thomas.scheffler(at)uni-jena.de">Thomas Scheffler</author>
+    <author email="kathleen.neumann(at)gbv.de">Kathleen Neumann</author>
   </properties>
   <body>
-    <release version="2013.08" date="2013-08-09" description="Codenamed &apos;Old Pascas&apos;">
+    <release version="2013.06.0.1" date="2013-08-14" description="2013.06.0 maintenance release 1">
       <action dev="mcrtchef" type="fix" date="2013-08-07">
-        mycore-mods: fixed export of serveral mycore objects as a MODS collection
+        fixed mods collection export (merged revision 27612 from trunk)
       </action>
-      <action dev="mcrmeich" type="fix" date="2013-08-07">
-        mycore-classeditor: fix haslink is not set for root categories via get request
+      <action dev="mcrkrebs" type="add" date="2013-08-07">
+        added stylesheet: mods 3.4 to dublin core (from loc) (merged revision 27603 from trunk)
       </action>
-      <action dev="mcrjkupf" type="add">
-        mycore-base: add a command to move files from one store to an other
-      </action>
-      <action dev="mcrjkupf" type="add">
-        mycore-base: add MCRObjectBaseStrategy
+      <action dev="mcrkrebs" type="fix">
+        highwire press tags now also matches mods:dateXXX without @encoding (workaround for now)
       </action>
       <action dev="mcrtchef" type="fix" date="2013-08-05" due-to="Kathleen Neumann">
         SearchURL from BasketServlet is not UTF-8 encoded
-        <fixes issue="646" />
+        <fixes issue="646"/>
       </action>
-      <action dev="mcrkrebs" type="add">
-        mycore-mods: added stylesheet to export to Dublin Core
-      </action>
-      <action dev="mcrshofm" type="update">
-        mycore-iview2: added compatibility to jQuery 1.10 
-      </action>
-      <action dev="mcrmeich" type="update">
-        mycore-classeditor: use new dojo store api to hold tree data
-      </action>
-      <action dev="mcrtchef" type="remove">
-        mycore-webcli: removed "add commands" command an related classes
-      </action>
-      <action dev="mcrsteph" type="update">
-        use annotated style (@MCRCommandGroup, @MCRCommand) for commands (old style is still working)
-        removed support for MCR.CLI.Classes.Annotated
-      </action>
-      <action dev="mcrfluet" type="fix" date="2013-07-30">
-        xeditor don't allow dot in element name
-        <fixes issue="644" />
-      </action>
-      <action dev="mcrmeich" type="update">
-        update classification editor to dojo 1.9.1
-      </action>
-      <action dev="mcrtchef" type="update">
-        use order to specify the order of command invocation per @MCRCommandGroup
+      <action dev="mcrfluet" type="fix">
+        Fix for bug #644 (xeditor don't allow dot in element name) and another bug
+        (xed:bind/@value sets the value not only for the last generated node, but
+        for all generated parent elements also) (merged revision 27513 and 27518 from trunk)
+        <fixes issue="644"/>
       </action>
       <action dev="mcrsteph" type="fix" date="2013-07-26">
-        fixed NonUniqueObjectException on object import with URN
+        fixed NonUniqueObjectException on object import with URN (merged revision 27501 from trunk)
       </action>
       <action dev="mcrsteph" type="fix" date="2013-07-26">
-        accept different exit code for newer versions of "pdftotext" tool
+        accept different exit code for newer versions of "pdftotext" tool (merged revision 27500 and 27502 from trunk)
       </action>
       <action dev="mcrtchef" type="fix" date="2013-07-22">
-        MCRUploadHandlerIFS leaks JDBC Connection
-        <fixes issue="643" />
+        MCRUploadHandlerIFS leaks JDBC Connection (merged revision 27461 and 27461 from trunk)
+        <fixes issue="643"/>
       </action>
-      <action dev="mcrmeich" type="add">
-        added MCRURL class to parse http parameters
-      </action>
-      <action dev="mcrtchef" type="update">
-        refactored MCRTarServlet and MCRZipServlet:
-
-        fixed permission checking and removed redundant code;
-        MCRTarServlet supports the same requests as MCRZipServlet;
-        added pathInfo support (makes 'id' parameter supported but obsolete)
-      </action>
-      <action dev="mcrtchef" type="update">
-        mycore-complete does only contain mycore components but no external libraries
-      </action>
-      <action dev="mcrkrebs" type="fix" date="2013-07-09">
-        mycore-mods: updated to recent zdb format changes
-      </action>
-      <action dev="mcrmeich" type="add">
-        added mycore component: mycore-acl-editor2
-      </action>
-      <action dev="mcrtchef" type="remove">
-        MCRHibImpExTools is no longer needed
-      </action>
-      <action dev="mcrtchef" type="update">
-        added cache for MCRXMLFunctions.isDisplayedEnabledDerivate(String)
-      </action>
-      <action dev="mcrfluet" type="update">
-        Simplify MCRExportServlet by letting MCRLayoutService do the layout and transformation job. This
-        allows to use MCRParameterizedTransformers like XSL Transformer with http request parameters. So we now can pass "XSL." parameters
-        to stylesheets in export transformers.
-      </action>
-      <action dev="mcrfluet" type="fix" date="2013-07-02">
-        Editor Framework changes HTML button element in static webpages
-        <fixes issue="639" />
-      </action>
-      <action dev="mcrtchef" type="update">
-        Better error pages for TransformerExceptions (displays source)
-      </action>
-      <action dev="mcrfluet" type="fix" date="2013-07-02" due-to="Nils">
-        content length header of MCRFileNodeServlets handles files over 2 GB
-        correctly.
-      </action>
-      <action dev="mcrtchef" type="add">
-        batch user import/update support
-      </action>
-      <action dev="mcrfluet" type="update">
-        editor framework: added support for request parameters in include/@uri and @ref (as in source/@uri)
-        to allow dynamic includes
+      <action dev="mcrkrebs" type="update">
+        show derivate urn in derivate section (merged revision 27411 from trunk)
       </action>
       <action dev="mcrkrebs" type="fix">
-        mycore-mods: fixed typo in solr field for identifier
+        refactured derivate and document options (merged revision 27385, 27389 and 27390 from trunk)
       </action>
-      <action dev="mcrsherm" type="update">
-        MCRISO8601Date: omit the '-' when the era designator is present in the format value (B.C.)
+      <action dev="mcrsteph" type="fix">
+        forward validation parameter to XML parser in MCRBase.setFromXML() (merged revision 27383 from trunk)
       </action>
-      <action dev="mcrtchef" type="remove">
-        removed mycore-doubletfinder and mycore-importer components
+      <action dev="mcrkrebs" type="add">
+        refactured derivate view, display URN (merged revision 27377 from trunk)
       </action>
-      <action dev="mcrtchef" type="remove">
-        removed dom4j dependency
+      <action dev="mcrkrebs" type="fix">
+        bugfix: check *all* issn entries in sherpa/romeo list (merged revision 27375 from trunk)
       </action>
-      <action dev="mcrtchef" type="update">
-        CLI command "init hibernate" is required to update database schema
+      <action dev="mcrkrebs" type="add">
+        added message property for poster in conference (merged revision 27360 from trunk)
       </action>
-      <action dev="mcrtchef" type="update">
-        update to hibernate 4.2.2 (prevents usage of hsqldb 1.8.x)
+      <action dev="mcrkrebs" type="fix">
+        updated to recent zdb format changes (merged revision 27351 from trunk)
       </action>
-      <action dev="mcrtchef" type="update">
-        moved content of jar internal web folder to META-INF/resources as defined by Servlet 3.0 standard.
+      <action dev="mcrfluet" type="fix">
+        Fix for bug #639 Editor Framework changes HTML button element in static webpages (merged revision 27294 from trunk)
+        <fixes issue="639"/>
       </action>
-      <action dev="mcrtchef" type="update">
-        use web-fragment.xml as defined by Servlet 3.0 standard.
-        <fixes issue="226" />
+      <action dev="mcrfluet" type="fix" date="2013-07-02" due-to="Nils">
+        content length header of MCRFileNodeServlets handles files over 2 GB correctly. (merged revision 27286 from trunk)
       </action>
-      <action dev="mcrtchef" type="update">
-        updated dependencies
+      <action dev="mcrfluet" type="add">
+        Added support for request parameters in include/@uri and @ref (as in source/@uri) to allow dynamic includes (merged revision 27273 from trunk)
+      </action>
+      <action dev="mcrkrebs" type="fix">
+        fixed typo in solr field for identifier (merged revision 27261 from trunk)
+      </action>
+      <action dev="mcrtchef" type="fix">
+        fixed handling of resources in MCRStaticXMLFileServlet (merged revision 27235 from trunk)
       </action>
     </release>
-    <release version="2013.06" date="2013-06-20" description="2013 LTS" />
+    <release version="2013.06.0" date="2013-06-20" description="2013 LTS" />
   </body>
 </document>
