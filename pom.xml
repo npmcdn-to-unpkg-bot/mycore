@@ -4,37 +4,27 @@
   <parent>
     <artifactId>mycore-parent</artifactId>
     <groupId>org.mycore</groupId>
-    <version>19-SNAPSHOT</version>
+    <version>16</version>
   </parent>
   <artifactId>mycore</artifactId>
   <packaging>pom</packaging>
-  <version>2014.02-SNAPSHOT</version>
+  <version>2013.06.0.2</version>
   <name>MyCoRe</name>
-  <description>
-    MyCoRe is a system for the development of institutional content repositories, publication servers, image collections,
-    archives, or similar repositories.
-    Applications based on MyCoRe use a common core, which provides the functionality typically required for such
-    applications, for example metadata management, querying, OAI harvesting interface, or an image viewer module.
-  </description>
+
+  <!-- Keep the description on a single line. Otherwise Maven might generate a corrupted MANIFEST.MF (see http://jira.codehaus.org/browse/MJAR-4) -->
+  <description>MyCoRe is a system for the development of institutional content repositories, publication servers, image collections,
+    archives, or similar repositories. Applications based on MyCoRe use a common core, which provides the functionality typically
+    required for such applications, for example metadata management, querying, OAI harvesting interface, or an image viewer
+    module.</description>
   <properties>
     <java.target.version>1.7</java.target.version>
     <uniqueVersion>false</uniqueVersion>
-    <hibernate.version>4.3.0.Final</hibernate.version>
+    <hibernate.version>3.6.10.Final</hibernate.version>
     <lucene.version>3.6.2</lucene.version>
     <xalan.version>2.7.1</xalan.version>
-    <jersey.version>1.18</jersey.version>
-    <changelog.since>2014-01-14</changelog.since>
-    <!-- until snapshot matches released version (required for 'mvn changes:changes-check') -->
-    <changes.version>2014.02</changes.version>
-    <site.suffix />
+    <jersey.version>1.17.1</jersey.version>
+    <changelog.since>2013-06-20</changelog.since>
   </properties>
-  <distributionManagement>
-    <site>
-      <id>MyCoRe HQ</id>
-      <name>MyCoRe HQ-sites</name>
-      <url>scp://server.mycore.de/mcr/mycore.de/generated/mycore${site.suffix}</url>
-    </site>
-  </distributionManagement>
   <issueManagement>
     <system>sourceforge</system>
     <url>http://sourceforge.net/p/mycore/bugs/</url>
@@ -56,17 +46,11 @@
     </notifiers>
   </ciManagement>
   <scm>
-    <connection>scm:svn:http://server.mycore.de/svn/mycore/trunk</connection>
-    <developerConnection>scm:svn:https://server.mycore.de/svn/mycore/trunk</developerConnection>
-    <url>http://www.mycore.de/viewvc/viewvc.cgi/mycore/trunk</url>
+    <connection>scm:svn:http://server.mycore.de/svn/mycore/tags/mycore-2013.06.0.2</connection>
+    <developerConnection>scm:svn:https://server.mycore.de/svn/mycore/tags/mycore-2013.06.0.2</developerConnection>
+    <url>http://www.mycore.de/viewvc/viewvc.cgi/mycore/tags/mycore-2013.06.0.2</url>
   </scm>
   <profiles>
-    <profile>
-      <id>release-profile</id>
-      <properties>
-        <site.suffix>-${project.version}</site.suffix>
-      </properties>
-    </profile>
     <profile>
       <id>development</id>
       <activation>
@@ -154,7 +138,7 @@
           </plugin>
           <plugin>
             <artifactId>maven-changes-plugin</artifactId>
-            <version>2.9</version>
+            <version>2.8</version>
             <inherited>false</inherited>
             <reportSets>
               <reportSet>
@@ -221,12 +205,8 @@
                   <packages>org.mycore.importer*</packages>
                 </group>
                 <group>
-                  <title>MyCoRe Component: Migration 2.1 -&gt; 2013.06</title>
-                  <packages>org.mycore.migration21_22*</packages>
-                </group>
-                <group>
-                  <title>MyCoRe Component: Media</title>
-                  <packages>org.mycore.media*</packages>
+                  <title>MyCoRe Component: Migration 2.0 -&gt; 2.1</title>
+                  <packages>org.mycore.migration20_21*</packages>
                 </group>
                 <group>
                   <title>MyCoRe Component: METS</title>
@@ -241,20 +221,8 @@
                   <packages>org.mycore.oai*</packages>
                 </group>
                 <group>
-                  <title>MyCoRe Component: SOLR</title>
-                  <packages>org.mycore.solr*</packages>
-                </group>
-                <group>
-                  <title>MyCoRe Component: Sword</title>
-                  <packages>org.mycore.sword*</packages>
-                </group>
-                <group>
                   <title>MyCoRe Component: Web-CLI</title>
                   <packages>org.mycore.webcli*</packages>
-                </group>
-                <group>
-                  <title>MyCoRe Component: WFC</title>
-                  <packages>org.mycore.wfc*</packages>
                 </group>
               </groups>
               <tags>
@@ -273,12 +241,11 @@
               </tags>
               <links>
                 <link>http://docs.oracle.com/javase/7/docs/api/</link>
-                <link>http://tomcat.apache.org/tomcat-7.0-doc/servletapi/</link>
+                <link>http://tomcat.apache.org/tomcat-5.5-doc/servletapi/</link>
                 <link>http://www.jdom.org/docs/apidocs/</link>
                 <link>http://logging.apache.org/log4j/1.2/apidocs/</link>
-                <link>http://docs.jboss.org/hibernate/core/4.3/javadocs/</link>
+                <link>http://docs.jboss.org/hibernate/core/3.6/javadocs/</link>
                 <link>http://lucene.apache.org/core/3_6_2/api/all/</link>
-                <link>http://lucene.apache.org/solr/4_6_0/solr-solrj/</link>
               </links>
             </configuration>
             <reportSets>
@@ -322,7 +289,6 @@
               <archive>
                 <manifest>
                   <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                  <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                 </manifest>
                 <manifestEntries>
                   <Specification-Title>${project.name}</Specification-Title>
@@ -330,7 +296,6 @@
                   <Implementation-Version>${BUILD_TAG}</Implementation-Version>
                   <Implementation-Build>${BUILD_NUMBER}</Implementation-Build>
                   <Implementation-Revision>${SVN_REVISION}</Implementation-Revision>
-                  <POM>META-INF/maven/${project.groupId}/${project.artifactId}/pom.properties</POM>
                 </manifestEntries>
               </archive>
             </configuration>
@@ -391,10 +356,6 @@
                 <packages>org.mycore.datamodel*</packages>
               </group>
               <group>
-                <title>MyCoRe Authorization System</title>
-                <packages>org.mycore.access*</packages>
-              </group>
-              <group>
                 <title>MyCoRe Persistence Backend Implementations</title>
                 <packages>org.mycore.backend*</packages>
               </group>
@@ -414,54 +375,6 @@
                 <title>MyCoRe User and Group Management</title>
                 <packages>org.mycore.user*</packages>
               </group>
-              <group>
-                <title>MyCoRe Component: BuildTools</title>
-                <packages>org.mycore.buildtools*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: IView 2</title>
-                <packages>org.mycore.iview2*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: Importer</title>
-                <packages>org.mycore.importer*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: Migration 2.1 -&gt; 2013.06</title>
-                <packages>org.mycore.migration21_22*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: Media</title>
-                <packages>org.mycore.media*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: METS</title>
-                <packages>org.mycore.mets*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: MODS</title>
-                <packages>org.mycore.mods*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: OAI</title>
-                <packages>org.mycore.oai*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: SOLR</title>
-                <packages>org.mycore.solr*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: Sword</title>
-                <packages>org.mycore.sword*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: Web-CLI</title>
-                <packages>org.mycore.webcli*</packages>
-              </group>
-              <group>
-                <title>MyCoRe Component: WFC</title>
-                <packages>org.mycore.wfc*</packages>
-              </group>
             </groups>
             <tags>
               <tag>
@@ -479,12 +392,11 @@
             </tags>
             <links>
               <link>http://docs.oracle.com/javase/7/docs/api/</link>
-              <link>http://tomcat.apache.org/tomcat-7.0-doc/servletapi/</link>
+              <link>http://tomcat.apache.org/tomcat-5.5-doc/servletapi/</link>
               <link>http://www.jdom.org/docs/apidocs/</link>
               <link>http://logging.apache.org/log4j/1.2/apidocs/</link>
-              <link>http://docs.jboss.org/hibernate/core/4.3/javadocs/</link>
+              <link>http://docs.jboss.org/hibernate/core/3.6/javadocs/</link>
               <link>http://lucene.apache.org/core/3_6_2/api/all/</link>
-              <link>http://lucene.apache.org/solr/4_6_0/solr-solrj/</link>
             </links>
           </configuration>
         </plugin>
@@ -511,12 +423,12 @@
       <dependency>
         <groupId>org.mycore.iview2</groupId>
         <artifactId>image-tiler</artifactId>
-        <version>1.9</version>
+        <version>1.8</version>
       </dependency>
       <dependency>
         <groupId>org.mycore.mets</groupId>
         <artifactId>mets-model</artifactId>
-        <version>0.4</version>
+        <version>0.3</version>
       </dependency>
       <dependency>
         <groupId>org.mycore</groupId>
@@ -565,12 +477,6 @@
         <groupId>org.jasig.cas</groupId>
         <artifactId>cas-client-core</artifactId>
         <version>3.1.10</version>
-        <exclusions>
-          <exclusion>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.jdom</groupId>
@@ -600,7 +506,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-compress</artifactId>
-        <version>1.6</version>
+        <version>1.5</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -610,7 +516,7 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.9</version>
+        <version>1.8</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.gson</groupId>
@@ -620,7 +526,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>15.0</version>
+        <version>14.0.1</version>
       </dependency>
       <dependency>
         <!-- required for commons-vfs -->
@@ -664,6 +570,17 @@
         </exclusions>
       </dependency>
       <dependency>
+        <groupId>dom4j</groupId>
+        <artifactId>dom4j</artifactId>
+        <version>1.6.1</version>
+        <exclusions>
+          <exclusion>
+            <groupId>xml-apis</groupId>
+            <artifactId>xml-apis</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
         <groupId>commons-lang</groupId>
         <artifactId>commons-lang</artifactId>
         <version>2.6</version>
@@ -686,12 +603,12 @@
       <dependency>
         <groupId>org.apache.solr</groupId>
         <artifactId>solr-solrj</artifactId>
-        <version>4.6.0</version>
+        <version>4.3.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpmime</artifactId>
-        <version>4.3.1</version>
+        <version>4.2.5</version>
       </dependency>
       <dependency>
         <groupId>xerces</groupId>
@@ -701,7 +618,7 @@
       <dependency>
         <groupId>com.ibm.icu</groupId>
         <artifactId>icu4j</artifactId>
-        <version>52.1</version>
+        <version>51.1</version>
       </dependency>
       <dependency>
         <groupId>javax.mail</groupId>
@@ -734,7 +651,7 @@
       <dependency>
         <groupId>xom</groupId>
         <artifactId>xom</artifactId>
-        <version>1.2.5</version>
+        <version>1.2</version>
       </dependency>
       <dependency>
         <groupId>commons-fileupload</groupId>
@@ -744,7 +661,7 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>4.3.1</version>
+        <version>4.2.5</version>
       </dependency>
       <dependency>
         <groupId>com.drewnoakes</groupId>
@@ -759,24 +676,24 @@
       <dependency>
         <groupId>org.apache.pdfbox</groupId>
         <artifactId>pdfbox</artifactId>
-        <version>1.8.3</version>
+        <version>1.8.1</version>
       </dependency>
       <dependency>
         <groupId>org.tmatesoft.svnkit</groupId>
         <artifactId>svnkit</artifactId>
-        <version>1.8.2</version>
+        <version>1.7.8</version>
       </dependency>
       <dependency>
         <groupId>net.java.dev.jna</groupId>
         <artifactId>jna</artifactId>
-        <version>4.0.0</version>
+        <version>3.5.2</version>
         <optional>true</optional>
         <scope>runtime</scope>
       </dependency>
       <dependency>
         <groupId>joda-time</groupId>
         <artifactId>joda-time</artifactId>
-        <version>2.3</version>
+        <version>2.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.axis</groupId>
@@ -814,12 +731,12 @@
       <dependency>
         <groupId>org.apache.ws.security</groupId>
         <artifactId>wss4j</artifactId>
-        <version>1.6.14</version>
+        <version>1.6.10</version>
       </dependency>
       <dependency>
         <groupId>javax.servlet</groupId>
-        <artifactId>javax.servlet-api</artifactId>
-        <version>3.0.1</version>
+        <artifactId>servlet-api</artifactId>
+        <version>2.4</version>
         <scope>provided</scope>
       </dependency>
       <dependency>
@@ -840,25 +757,30 @@
       <dependency>
         <groupId>org.apache.ant</groupId>
         <artifactId>ant</artifactId>
-        <version>1.9.3</version>
+        <version>1.9.0</version>
         <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>org.hsqldb</groupId>
         <artifactId>hsqldb</artifactId>
-        <version>2.3.1</version>
+        <version>2.2.9</version>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>net.sf.ehcache</groupId>
+        <artifactId>ehcache-core</artifactId>
+        <version>2.6.6</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
-        <version>1.7.5</version>
+        <version>1.6.1</version>
         <scope>runtime</scope>
       </dependency>
       <dependency>
         <groupId>org.javassist</groupId>
         <artifactId>javassist</artifactId>
-        <version>3.18.1-GA</version>
+        <version>3.17.1-GA</version>
         <scope>runtime</scope>
       </dependency>
       <dependency>
@@ -934,16 +856,6 @@
         <artifactId>jsr250-api</artifactId>
         <version>1.0</version>
         <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>xml-resolver</groupId>
-        <artifactId>xml-resolver</artifactId>
-        <version>1.2</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-httpclient</groupId>
-        <artifactId>commons-httpclient</artifactId>
-        <version>3.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -1067,17 +979,6 @@
       </roles>
     </developer>
     <developer>
-      <id>mcrmibue</id>
-      <name>Michel Büchner</name>
-      <organization>Friedrich-Schiller-Universität Jena, Thüringer Universitäts- und Landesbibliothek</organization>
-      <email>michel.buechner (at) uni-weimar.de</email>
-      <organizationUrl>http://www.thulb.uni-jena.de/</organizationUrl>
-      <timezone>+1</timezone>
-      <roles>
-        <role>programmer</role>
-      </roles>
-    </developer>
-    <developer>
       <id>mcrmeich</id>
       <name>Matthias Eichner</name>
       <organization>Friedrich-Schiller-Universität Jena, Thüringer Universitäts- und Landesbibliothek</organization>
@@ -1165,17 +1066,6 @@
       <id>mcrradic</id>
       <name>Radi Radichev</name>
       <organization>Friedrich-Schiller-Universität Jena, Thüringer Universitäts- und Landesbibliothek</organization>
-      <organizationUrl>http://www.thulb.uni-jena.de/</organizationUrl>
-      <timezone>+1</timezone>
-      <roles>
-        <role>programmer</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>mcrsroeh</id>
-      <name>Sebastian Röher</name>
-      <organization>Friedrich-Schiller-Universität Jena, Thüringer Universitäts- und Landesbibliothek</organization>
-      <email>sebastian.roeher (at) thulb.uni-jena.de</email>
       <organizationUrl>http://www.thulb.uni-jena.de/</organizationUrl>
       <timezone>+1</timezone>
       <roles>
@@ -1322,12 +1212,13 @@
     <module>mycore-buildtools</module>
     <module>mycore-classbrowser</module>
     <module>mycore-classeditor</module>
+    <module>mycore-doubletfinder</module>
+    <module>mycore-importer</module>
     <module>mycore-indexing</module>
     <module>mycore-iview2</module>
     <module>mycore-media</module>
-    <module>mycore-meta</module>
     <module>mycore-mets</module>
-    <module>mycore-migration-2014</module>
+    <module>mycore-migration21-22</module>
     <module>mycore-mods</module>
     <module>mycore-oai</module>
     <module>mycore-session-listing</module>
@@ -1343,7 +1234,5 @@
     <module>mycore-xeditor</module>
     <module>mycore-complete</module>
     <module>iview2-addons</module>
-    <module>mycore-acl-editor2</module>
-    <module>mycore-handle</module>
   </modules>
 </project>

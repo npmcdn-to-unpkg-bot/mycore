@@ -22,8 +22,8 @@ import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRSessionMgr;
-import org.mycore.common.config.MCRConfiguration;
 
 /**
  * is a wrapper for shutdown hooks. When used inside a web application this
@@ -77,11 +77,11 @@ public class MCRShutdownHandler {
 
     private static MCRShutdownHandler SINGLETON = new MCRShutdownHandler();
 
+    private static Logger LOGGER = Logger.getLogger(MCRShutdownHandler.class);
+
     private static final Set<Closeable> requests = Collections.synchronizedSet(new HashSet<Closeable>());
 
-    private static final String system = MCRConfiguration.instance().getString("MCR.CommandLineInterface.SystemName",
-        "MyCoRe")
-        + ":";
+    private static final String system = MCRConfiguration.instance().getString("MCR.CommandLineInterface.SystemName", "MyCoRe") + ":";
 
     private static boolean shuttingDown = false;
 
@@ -114,26 +114,25 @@ public class MCRShutdownHandler {
 
     void shutDown() {
         System.out.println(system + " Shutting down system, please wait...\n");
-        Logger logger = Logger.getLogger(MCRShutdownHandler.class);
-        logger.debug("requests: " + requests.toString());
+        LOGGER.debug("requests: " + requests.toString());
         synchronized (requests) {
             shuttingDown = true;
             Closeable[] closeables = requests.toArray(new Closeable[requests.size()]);
             Arrays.sort(closeables, new MCRCloseableComparator());
             for (Closeable c : closeables) {
-                logger.debug("Prepare Closing: " + c.toString());
+                LOGGER.debug("Prepare Closing: " + c.toString());
                 c.prepareClose();
             }
 
             for (Closeable c : closeables) {
-                logger.debug("Closing: " + c.toString());
+                LOGGER.debug("Closing: " + c.toString());
                 c.close();
                 requests.remove(c);
             }
         }
-        System.out.println(system + " closing any remaining MCRSession instances, please wait...\n");
+        LOGGER.info(system + " closing any remaining MCRSession instances, please wait...\n");
         MCRSessionMgr.close();
-        System.out.println(system + " Goodbye, and remember: \"Alles wird gut.\"\n");
+        LOGGER.info(system + " Goodbye, and remember: \"Alles wird gut.\"\n");
         LogManager.shutdown();
         // may be needed in webapp to release file handles correctly.
         Introspector.flushCaches();

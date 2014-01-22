@@ -137,9 +137,4 @@ public class MCRSolrIndexEventHandler extends MCREventHandlerBase {
     protected void updateDerivateFileIndex(MCREvent evt, MCRDerivate derivate) {
         MCRSolrIndexer.rebuildContentIndex(Arrays.asList(derivate.getId().toString()));
     }
-
-    @Override
-    protected void handleObjectIndex(MCREvent evt, MCRObject obj) {
-        handleObjectUpdated(evt, obj);
-    }
 }

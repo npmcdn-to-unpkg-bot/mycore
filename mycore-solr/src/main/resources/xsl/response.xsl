@@ -26,29 +26,32 @@
   </xsl:variable>
 
   <xsl:template match="/response">
-    <xsl:apply-templates select="result|response[@subresult='groupOwner']/result|lst[@name='grouped']/lst[@name='returnId' and int[@name='matches']='0']" />
+    <xsl:apply-templates select="result" />
+    <!-- layer for the img tooltips, is initially not visable -->
+    <div id="toolTipLayer" style="position:absolute; visibility: hidden;left:0;right:0"></div>
+    <script>
+      initToolTips();
+    </script>
   </xsl:template>
 
-  <xsl:template match="/response/result|/response/response[@subresult='groupOwner']/result|lst[@name='grouped']/lst[@name='returnId' and int[@name='matches']='0']">
+  <xsl:template match="/response/result">
     <xsl:variable name="ResultPages">
-      <xsl:if test="$hits &gt; 0">
-        <xsl:call-template name="solr.Pagination">
-          <xsl:with-param name="size" select="$rows" />
-          <xsl:with-param name="currentpage" select="$currentPage" />
-          <xsl:with-param name="totalpage" select="$totalPages" />
-        </xsl:call-template>
-      </xsl:if>
+      <xsl:call-template name="solr.Pagination">
+        <xsl:with-param name="size" select="$rows" />
+        <xsl:with-param name="currentpage" select="$currentPage" />
+        <xsl:with-param name="totalpage" select="$totalPages" />
+      </xsl:call-template>
     </xsl:variable>
     <h3>
       <xsl:choose>
-        <xsl:when test="$hits=0">
+        <xsl:when test="@numFound=0">
           <xsl:value-of select="i18n:translate('results.noObject')" />
         </xsl:when>
-        <xsl:when test="$hits=1">
+        <xsl:when test="@numFound=1">
           <xsl:value-of select="i18n:translate('results.oneObject')" />
         </xsl:when>
         <xsl:otherwise>
-          <xsl:value-of select="i18n:translate('results.nObjects',$hits)" />
+          <xsl:value-of select="i18n:translate('results.nObjects',@numFound)" />
         </xsl:otherwise>
       </xsl:choose>
     </h3>
@@ -58,7 +61,7 @@
         <div class="result_options">
           <div class="btn-group">
             <xsl:if test="$searchMask">
-              <a class="btn btn-default" href="{$WebApplicationBaseURL}{$searchMask}{$HttpSession}">
+              <a class="btn" href="{$WebApplicationBaseURL}{$searchMask}{$HttpSession}">
                 <i class="icon-search">
                   <xsl:value-of select="' '" />
                 </i>
@@ -66,6 +69,9 @@
               </a>
             </xsl:if>
             <xsl:if test="doc">
+              <a class="btn btn-primary" href="" onclick="jQuery('form.basket_form').submit();return false;">
+                <xsl:value-of select="i18n:translate('basket.add.searchpage')" />
+              </a>
               <form action="{$ServletsBaseURL}MCRBasketServlet{$HttpSession}" method="post" class="basket_form">
                 <input type="hidden" name="action" value="add" />
                 <input type="hidden" name="redirect" value="referer" />
@@ -75,9 +81,6 @@
                   <input type="hidden" name="uri" value="{concat('mcrobject:',@id)}" />
                 </xsl:for-each>
               </form>
-              <a class="btn btn-primary" href="" onclick="jQuery('form.basket_form').submit();return false;">
-                <xsl:value-of select="i18n:translate('basket.add.searchpage')" />
-              </a>
             </xsl:if>
           </div>
         </div>
@@ -153,7 +156,6 @@
             </xsl:call-template>
           </time>
         </p>
-        <xsl:apply-templates select="." mode="hitInFiles" />
       </footer>
       <section>
         <ul class="actions">
@@ -173,6 +175,24 @@
         </ul>
       </section>
     </article>
+    <!-- 
+        <xsl:choose>
+          <xsl:when test="str[@name='objectType'] = 'data_file'">
+            <xsl:call-template name="iViewLinkPrev">
+              <xsl:with-param name="derivates" select="./str[@name='DerivateID']" />
+              <xsl:with-param name="mcrid" select="./str[@name='returnId']" />
+              <xsl:with-param name="fileName" select="./str[@name='filePath']" />
+            </xsl:call-template>
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:call-template name="iViewLinkPrev">
+              <xsl:with-param name="derivates" select="./arr[@name='derivates']/str" />
+              <xsl:with-param name="mcrid" select="$identifier" />
+              <xsl:with-param name="derivateLinks" select="./arr[@name='derivateLink']/str" />
+            </xsl:call-template>
+          </xsl:otherwise>
+        </xsl:choose>
+     -->
   </xsl:template>
 
 </xsl:stylesheet>

@@ -30,14 +30,14 @@ import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
+import org.jdom2.Document;
 import org.jdom2.Element;
 import org.mycore.backend.hibernate.MCRHIBConnection;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.MCRSystemUserInformation;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.content.MCRJDOMContent;
-import org.mycore.common.events.MCRStartupHandler;
 import org.mycore.common.xml.MCRURIResolver;
 
 /**
@@ -72,23 +72,23 @@ public class MCRCommandLineInterface {
 
     private static boolean SKIP_FAILED_COMMAND = false;
 
-    private static MCRCommandManager knownCommands;
+    private static MCRKnownCommands knownCommands;
 
     /**
      * The main method that either shows up an interactive command prompt or
      * reads a file containing a list of commands to be processed
      */
     public static void main(String[] args) {
-        MCRStartupHandler.startUp(null/*no servlet context here*/);
         system = MCRConfiguration.instance().getString("MCR.CommandLineInterface.SystemName", "MyCoRe") + ":";
 
         initSession();
+
         output("");
         output("Command Line Interface.");
         output("");
 
         output("Initializing...");
-        knownCommands = new MCRCommandManager();
+        knownCommands = new MCRKnownCommands();
         output("Initialization done.");
 
         output("Type 'help' to list all commands!");
@@ -103,8 +103,7 @@ public class MCRCommandLineInterface {
             if (commandQueue.isEmpty()) {
                 if (interactiveMode) {
                     command = prompt.readCommand();
-                } else if (MCRConfiguration.instance().getString("MCR.CommandLineInterface.unitTest", "false")
-                    .equals("true")) {
+                } else if (MCRConfiguration.instance().getString("MCR.CommandLineInterface.unitTest", "false").equals("true")) {
                     break;
                 } else {
                     exit();

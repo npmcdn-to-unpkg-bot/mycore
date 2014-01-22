@@ -23,19 +23,25 @@
 
 package org.mycore.common.xml;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.ArrayList;
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,6 +53,7 @@ import javax.xml.transform.URIResolver;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -59,12 +66,12 @@ import org.jdom2.output.XMLOutputter;
 import org.jdom2.transform.JDOMSource;
 import org.mycore.access.MCRAccessManager;
 import org.mycore.common.MCRCache;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRConstants;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.MCRUsageException;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.content.MCRContent;
 import org.mycore.common.content.MCRSourceContent;
 import org.mycore.common.content.transformer.MCRContentTransformer;
@@ -99,6 +106,7 @@ import org.mycore.tools.MCRObjectFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
+import org.xml.sax.ext.EntityResolver2;
 import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
@@ -114,7 +122,7 @@ import org.xml.sax.helpers.XMLReaderFactory;
  * @author Frank L\u00FCtzenkirchen
  * @author Thomas Scheffler (yagee)
  */
-public final class MCRURIResolver implements URIResolver {
+public final class MCRURIResolver implements URIResolver, EntityResolver2 {
     private static final Logger LOGGER = Logger.getLogger(MCRURIResolver.class);
 
     private static Map<String, URIResolver> SUPPORTED_SCHEMES;
@@ -129,16 +137,20 @@ public final class MCRURIResolver implements URIResolver {
 
     final static String SESSION_OBJECT_NAME = "URI_RESOLVER_DEBUG";
 
+    private MCRCache<String, byte[]> bytesCache;
+
     /**
      * Creates a new MCRURIResolver
      */
     private MCRURIResolver() {
+        MCRConfiguration config = MCRConfiguration.instance();
+        int cacheSize = config.getInt(CONFIG_PREFIX + "StaticFiles.CacheSize", 100);
+        bytesCache = new MCRCache<String, byte[]>(cacheSize, "URIResolver Resources");
         SUPPORTED_SCHEMES = Collections.unmodifiableMap(getResolverMapping());
     }
 
     private static MCRResolverProvider getExternalResolverProvider() {
-        String externalClassName = MCRConfiguration.instance()
-            .getString(CONFIG_PREFIX + "ExternalResolver.Class", null);
+        String externalClassName = MCRConfiguration.instance().getString(CONFIG_PREFIX + "ExternalResolver.Class", null);
         final MCRResolverProvider emptyResolver = new MCRResolverProvider() {
             public Map<String, MCRResolver> getResolverMapping() {
                 return new HashMap<String, MCRResolver>();
@@ -171,8 +183,7 @@ public final class MCRURIResolver implements URIResolver {
         final Map<String, URIResolver> extResolverMapping = EXT_RESOLVER.getURIResolverMapping();
         extResolverMapping.putAll(new MCRModuleResolverProvider().getURIResolverMapping());
         // set Map to final size with loadfactor: full
-        HashMap<String, URIResolver> supportedSchemes = new HashMap<String, URIResolver>(
-            10 + extResolverMapping.size(), 1);
+        HashMap<String, URIResolver> supportedSchemes = new HashMap<String, URIResolver>(10 + extResolverMapping.size(), 1);
         // don't let interal mapping be overwritten
         supportedSchemes.putAll(extResolverMapping);
         supportedSchemes.put("webapp", new MCRWebAppResolver());
@@ -200,7 +211,6 @@ public final class MCRURIResolver implements URIResolver {
         supportedSchemes.put("fileMeta", new MCRFileMetadataResolver());
         supportedSchemes.put("basket", new org.mycore.frontend.basket.MCRBasketResolver());
         supportedSchemes.put("language", new org.mycore.datamodel.language.MCRLanguageResolver());
-        supportedSchemes.put("chooseTemplate", new MCRChooseTemplateResolver());
         return supportedSchemes;
     }
 
@@ -219,8 +229,10 @@ public final class MCRURIResolver implements URIResolver {
      * @param webAppBase
      *            the base URL of this web application
      */
-    public static synchronized void init(ServletContext ctx) {
+    public static synchronized void init(ServletContext ctx, String webAppBase) {
         context = ctx;
+        LOGGER.debug("parameter webAppBase (" + webAppBase + ") will not be used");
+        // FIXME: use webAppBase or remove it
     }
 
     /**
@@ -275,17 +287,17 @@ public final class MCRURIResolver implements URIResolver {
             }
         }
         if (!href.contains(":")) {
-            return tryResolveXSL(href, base);
+            return tryResolveXSL(href);
         }
 
-        String scheme = getScheme(href, base);
+        String scheme = getScheme(href);
 
         URIResolver uriResolver = SUPPORTED_SCHEMES.get(scheme);
         if (uriResolver != null) {
             return uriResolver.resolve(href, base);
         } else { // try to handle as URL, use default resolver for file:// and
             // http://
-            if (href.endsWith("/") && scheme.equals("file")) {
+            if (href.endsWith("/") && href.startsWith("file:")) {
                 //cannot stream directories
                 return null;
             }
@@ -295,17 +307,100 @@ public final class MCRURIResolver implements URIResolver {
         }
     }
 
-    private Source tryResolveXSL(String href, String base) throws TransformerException {
+    private Source tryResolveXSL(String href) throws TransformerException {
         if (href.endsWith(".xsl")) {
             final String uri = "resource:xsl/" + href;
             LOGGER.debug("Trying to resolve " + href + " from uri " + uri);
-            return SUPPORTED_SCHEMES.get("resource").resolve(uri, base);
+            return SUPPORTED_SCHEMES.get("resource").resolve(uri, null);
         }
         return null;
     }
 
     private void addDebugInfo(String href, String base) {
         MCRURIResolverFilter.uriList.get().add(href + " from " + base);
+    }
+
+    /**
+     * Implements the SAX EntityResolver interface. This resolver type is used
+     * to read DTDs and XML Schema files when parsing XML documents. This
+     * resolver searches such files in the CLASSPATH of the current application.
+     * 
+     * @see org.xml.sax.EntityResolver
+     */
+    public InputSource resolveEntity(String publicId, String systemId) throws IOException {
+        LOGGER.debug("Resolving " + publicId + " :: " + systemId);
+        try {
+            return resolveEntity(null, publicId, null, getFileName(systemId));
+        } catch (SAXException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    public InputSource getExternalSubset(String name, String baseURI) throws SAXException, IOException {
+        return resolveEntity(name, null, baseURI, null);
+    }
+
+    @Override
+    public InputSource resolveEntity(String name, String publicId, String baseURI, String systemId) throws SAXException, IOException {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(MessageFormat.format("Resolving: \nname: {0}\npublicId: {1}\nbaseURI: {2}\nsystemId: {3}", name, publicId,
+                    baseURI, systemId));
+        }
+        if (systemId == null) {
+            return null; // Use default resolver
+        }
+
+        if (systemId.length() == 0) {
+            // if you overwrite SYSTEM by empty String in XSL
+            return new InputSource(new StringReader(""));
+        }
+        InputStream is = getCachedResource("/" + systemId);
+        if (is == null) {
+            return null;
+        }
+        return new InputSource(is);
+    }
+
+    /**
+     * Returns the filename part of a path if path is absolute URI
+     * 
+     * @param path
+     *            the path of a file
+     * @return the part after the last / or \\
+     * @throws URISyntaxException 
+     */
+    private String getFileName(String path) {
+        int posA = path.lastIndexOf("/");
+        int posB = path.lastIndexOf("\\");
+        int pos = posA == -1 ? posB : posA;
+
+        return pos == -1 ? path : path.substring(pos + 1);
+    }
+
+    private InputStream getCachedResource(String classResource) throws IOException {
+        byte[] bytes = bytesCache.get(classResource);
+
+        if (bytes == null) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            LOGGER.debug("Resolving resource " + classResource);
+            InputStream in = this.getClass().getResourceAsStream(classResource);
+
+            if (in == null) {
+                LOGGER.debug(classResource + " not found");
+                return null;
+            }
+            try {
+                IOUtils.copy(in, baos);
+            } finally {
+                baos.close();
+                in.close();
+            }
+            bytes = baos.toByteArray();
+            bytesCache.put(classResource, bytes);
+        }
+
+        return new ByteArrayInputStream(bytes);
     }
 
     /**
@@ -338,22 +433,10 @@ public final class MCRURIResolver implements URIResolver {
      * 
      * @param uri
      *            the URI to parse
-     * @param base
-     *            if uri is relative, resolve scheme from base parameter
      * @return the protocol/scheme part before the ":"
      */
-    public String getScheme(String uri, String base) {
-        StringTokenizer uriTokenizer = new StringTokenizer(uri, ":");
-        if (uriTokenizer.hasMoreTokens()) {
-            return uriTokenizer.nextToken();
-        }
-        if (base != null) {
-            uriTokenizer = new StringTokenizer(base, ":");
-            if (uriTokenizer.hasMoreTokens()) {
-                return uriTokenizer.nextToken();
-            }
-        }
-        return null;
+    public String getScheme(String uri) {
+        return new StringTokenizer(uri, ":").nextToken();
     }
 
     URIResolver getResolver(String scheme) {
@@ -375,7 +458,7 @@ public final class MCRURIResolver implements URIResolver {
      */
     protected Element parseStream(InputStream in) throws JDOMException, IOException {
         SAXBuilder builder = new SAXBuilder(XMLReaders.NONVALIDATING);
-        builder.setEntityResolver(MCREntityResolver.instance());
+        builder.setEntityResolver(this);
 
         return builder.build(in).getRootElement();
     }
@@ -435,17 +518,17 @@ public final class MCRURIResolver implements URIResolver {
         }
 
         public Map<String, URIResolver> getURIResolverMapping() {
-            Map<String, String> props = MCRConfiguration.instance().getPropertiesMap(CONFIG_PREFIX + "ModuleResolver.");
+            Properties props = MCRConfiguration.instance().getProperties(CONFIG_PREFIX + "ModuleResolver.");
             if (props.isEmpty()) {
                 return new HashMap<String, URIResolver>();
             }
             Map<String, URIResolver> map = new HashMap<String, URIResolver>();
-            for (Entry<String, String> entry : props.entrySet()) {
+            for (Entry<Object, Object> entry : props.entrySet()) {
                 try {
-                    String scheme = entry.getKey();
+                    String scheme = entry.getKey().toString();
                     scheme = scheme.substring(scheme.lastIndexOf('.') + 1);
-                    LOGGER.debug("Adding Resolver " + entry.getValue() + " for URI scheme " + scheme);
-                    Object newInstance = MCRConfiguration.instance().getInstanceOf(entry.getKey());
+                    LOGGER.debug("Adding Resolver " + entry.getValue().toString() + " for URI scheme " + scheme);
+                    Object newInstance = MCRConfiguration.instance().getInstanceOf(entry.getKey().toString());
                     if (newInstance instanceof URIResolver) {
                         map.put(scheme, (URIResolver) newInstance);
                     } else {
@@ -454,8 +537,7 @@ public final class MCRURIResolver implements URIResolver {
                     }
                 } catch (Exception e) {
                     LOGGER.error("Cannot instantiate " + entry.getValue() + " for URI scheme " + entry.getKey());
-                    throw new MCRException("Cannot instantiate " + entry.getValue() + " for URI scheme "
-                        + entry.getKey(), e);
+                    throw new MCRException("Cannot instantiate " + entry.getValue() + " for URI scheme " + entry.getKey(), e);
                 }
             }
             return map;
@@ -541,8 +623,7 @@ public final class MCRURIResolver implements URIResolver {
                 return null;
             }
             if (params.get(OPERATION_KEY).equals("MCRDoRetrieveObject")) {
-                org.w3c.dom.Document document = MCRQueryClient.doRetrieveObject(params.get(HOST_KEY),
-                    params.get(OBJECT_KEY));
+                org.w3c.dom.Document document = MCRQueryClient.doRetrieveObject(params.get(HOST_KEY), params.get(OBJECT_KEY));
                 return DOM_BUILDER.build(document).detachRootElement();
             }
             if (params.get(OPERATION_KEY).equals("MCRDoRetrieveClassification")) {
@@ -552,8 +633,7 @@ public final class MCRURIResolver implements URIResolver {
                 String classId = params.get(CLASS_KEY);
                 String categId = params.get(CATEG_KEY);
                 String format = params.get(FORMAT_KEY);
-                org.w3c.dom.Document document = MCRQueryClient.doRetrieveClassification(hostAlias, level, type,
-                    classId, categId, format);
+                org.w3c.dom.Document document = MCRQueryClient.doRetrieveClassification(hostAlias, level, type, classId, categId, format);
                 return DOM_BUILDER.build(document).detachRootElement();
             }
             if (params.get(OPERATION_KEY).equals("MCRDoRetrieveLinks")) {
@@ -634,95 +714,14 @@ public final class MCRURIResolver implements URIResolver {
         @Override
         public Source resolve(String href, String base) throws TransformerException {
             String path = href.substring(href.indexOf(":") + 1);
-            if (path.charAt(0) != '/') {
-                path = '/' + path;
-            }
             LOGGER.debug("Reading xml from webapp " + path);
             try {
-                URL resource = context.getResource(path);
-                if (resource != null) {
-                    return new StreamSource(resource.toURI().toASCIIString());
-                }
+                File f = new File(context.getRealPath(path));
+                return new StreamSource(new FileInputStream(f));
             } catch (Exception ex) {
                 throw new TransformerException(ex);
             }
-            LOGGER.error("File does not exist: " + context.getRealPath(path));
-            throw new TransformerException("Could not find web resource: " + path);
         }
-    }
-
-    private static class MCRChooseTemplateResolver implements URIResolver {
-
-        @Override
-        public Source resolve(String href, String base) throws TransformerException {
-            String type = href.substring(href.indexOf(":") + 1);
-            String path = "/templates/" + type + "/";
-            LOGGER.debug("Reading templates from " + path);
-            Set<String> resourcePaths = context.getResourcePaths(path);
-            ArrayList<String> templates = new ArrayList<>();
-            if (resourcePaths != null) {
-                for (String resourcePath : resourcePaths) {
-                    if (!resourcePath.endsWith("/")) {
-                        //only handle directories
-                        continue;
-                    }
-                    String templateName = resourcePath.substring(path.length(), resourcePath.length() - 1);
-                    LOGGER.debug("Checking if template: " + templateName);
-                    if (templateName.contains("/")) {
-                        continue;
-                    }
-                    templates.add(templateName);
-                }
-                Collections.sort(templates);
-            }
-            LOGGER.info("Found theses templates: " + templates);
-            return new JDOMSource(getStylesheets(templates));
-        }
-
-        private static Document getStylesheets(List<String> temps) {
-
-            Element rootOut = new Element("stylesheet", MCRConstants.XSL_NAMESPACE).setAttribute("version", "1.0");
-            Document jdom = new Document(rootOut);
-
-            if (temps.isEmpty()) {
-                return jdom;
-            }
-
-            for (String templateName : temps) {
-                rootOut.addContent(new Element("include", MCRConstants.XSL_NAMESPACE).setAttribute("href", templateName
-                    + ".xsl"));
-            }
-
-            // first template named "chooseTemplate" in chooseTemplate.xsl
-            Element template = new Element("template", MCRConstants.XSL_NAMESPACE).setAttribute("name",
-                "chooseTemplate");
-            Element choose = new Element("choose", MCRConstants.XSL_NAMESPACE);
-            // second template named "get.templates" in chooseTemplate.xsl
-            Element template2 = new Element("template", MCRConstants.XSL_NAMESPACE).setAttribute("name",
-                "get.templates");
-            Element templates = new Element("templates");
-
-            for (String templateName : temps) {
-                // add elements in the first template
-                Element when = new Element("when", MCRConstants.XSL_NAMESPACE).setAttribute("test", "$template = '"
-                    + templateName + "'");
-                when.addContent(new Element("call-template", MCRConstants.XSL_NAMESPACE).setAttribute("name",
-                    templateName));
-                choose.addContent(when);
-
-                // add elements in the second template
-                templates.addContent(new Element("template").setAttribute("category", "master").setText(templateName));
-            }
-
-            // first
-            template.addContent(choose);
-            rootOut.addContent(template);
-            // second
-            template2.addContent(templates);
-            rootOut.addContent(template2);
-            return jdom;
-        }
-
     }
 
     /**
@@ -744,7 +743,7 @@ public final class MCRURIResolver implements URIResolver {
                     } catch (SAXException e) {
                         throw new TransformerException(e);
                     }
-                    reader.setEntityResolver(MCREntityResolver.instance());
+                    reader.setEntityResolver(MCRURIResolver.instance());
                     InputSource input = new InputSource(resource.toString());
                     return new SAXSource(reader, input);
                 }
@@ -913,8 +912,8 @@ public final class MCRURIResolver implements URIResolver {
 
         private static final String SORT_CONFIG_PREFIX = CONFIG_PREFIX + "Classification.Sort.";
 
-        private static MCRCache<String, Element> categoryCache = new MCRCache<String, Element>(MCRConfiguration
-            .instance().getInt(CONFIG_PREFIX + "Classification.CacheSize", 1000), "URIResolver categories");
+        private static MCRCache<String, Element> categoryCache = new MCRCache<String, Element>(MCRConfiguration.instance().getInt(
+                CONFIG_PREFIX + "Classification.CacheSize", 1000), "URIResolver categories");
 
         private static final MCRCategoryDAO DAO = MCRCategoryDAOFactory.getInstance();
 
@@ -1004,8 +1003,7 @@ public final class MCRURIResolver implements URIResolver {
                 if (categ.length() == 0) {
                     LOGGER.error("Cannot resolve parent axis without a CategID. URI: " + uri);
                     throw new IllegalArgumentException(
-                        "Invalid format (categID is required in mode 'parents') of uri for retrieval of classification: "
-                            + uri);
+                            "Invalid format (categID is required in mode 'parents') of uri for retrieval of classification: " + uri);
                 }
                 cl = DAO.getRootCategory(new MCRCategoryID(classID, categ), levels);
             }
@@ -1028,8 +1026,7 @@ public final class MCRURIResolver implements URIResolver {
                 returns = (Element) MCRCategoryTransformer.getMetaDataDocument(cl, false).getRootElement().detach();
             } else {
                 LOGGER.error("Unknown target format given. URI: " + uri);
-                throw new IllegalArgumentException("Invalid target format (" + format
-                    + ") in uri for retrieval of classification: " + uri);
+                throw new IllegalArgumentException("Invalid target format (" + format + ") in uri for retrieval of classification: " + uri);
             }
             LOGGER.debug("end resolving " + uri);
             return returns;
@@ -1146,8 +1143,7 @@ public final class MCRURIResolver implements URIResolver {
             return defaultVal;
         }
 
-        private static Document getQueryDocument(String query, String sortby, String order, String maxResults,
-            String numPerPage) {
+        private static Document getQueryDocument(String query, String sortby, String order, String maxResults, String numPerPage) {
             Element queryElement = new Element("query");
             queryElement.setAttribute("maxResults", maxResults);
             queryElement.setAttribute("numPerPage", numPerPage);
@@ -1315,10 +1311,7 @@ public final class MCRURIResolver implements URIResolver {
                     LOGGER.debug("MCRLayoutStyleResolver returning empty xml");
                     return new JDOMSource(new Element("null"));
                 }
-            } catch (Exception e) {
-                if (e instanceof TransformerException) {
-                    throw (TransformerException) e;
-                }
+            } catch (IOException e) {
                 Throwable cause = e.getCause();
                 while (cause != null) {
                     if (cause instanceof TransformerException) {
@@ -1351,13 +1344,15 @@ public final class MCRURIResolver implements URIResolver {
             root.setAttribute("version", "1.0");
 
             // get the parameters from mycore.properties
-            List<String> propValue = Collections.emptyList();
-            propValue = MCRConfiguration.instance().getStrings("MCR.URIResolver.xslIncludes." + includePart, propValue);
-            for (String include : propValue) {
-                // create a new include element
-                Element includeElement = new Element("include", xslNamespace);
-                includeElement.setAttribute("href", include);
-                root.addContent(includeElement);
+            String propValue = MCRConfiguration.instance().getString("MCR.URIResolver.xslIncludes." + includePart, "").trim();
+            if (!propValue.isEmpty()) {
+                String[] includes = propValue.split(",");
+                for (String include : includes) {
+                    // create a new include element
+                    Element includeElement = new Element("include", xslNamespace);
+                    includeElement.setAttribute("href", include);
+                    root.addContent(includeElement);
+                }
             }
             return new JDOMSource(root);
         }

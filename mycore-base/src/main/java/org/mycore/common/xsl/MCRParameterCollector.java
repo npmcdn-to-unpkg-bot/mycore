@@ -31,10 +31,10 @@ import javax.servlet.http.HttpSession;
 import javax.xml.transform.Transformer;
 
 import org.apache.log4j.Logger;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRConstants;
 import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.frontend.servlets.MCRServlet;
 import org.mycore.frontend.servlets.MCRServletJob;
 
@@ -184,8 +184,8 @@ public class MCRParameterCollector {
      * Copies all MCRConfiguration properties as XSL parameters.
      */
     private void setFromConfiguration() {
-        for (Map.Entry<String, String> property : MCRConfiguration.instance().getPropertiesMap().entrySet()) {
-            parameters.put(property.getKey(), property.getValue());
+        for (Map.Entry<Object, Object> property : MCRConfiguration.instance().getProperties().entrySet()) {
+            parameters.put(property.getKey().toString(), property.getValue().toString());
         }
     }
 
@@ -194,7 +194,8 @@ public class MCRParameterCollector {
      * others will be ignored. The "XSL." prefix is cut off from the name.
      */
     private void setFromSession(HttpSession session) {
-        for (Enumeration<String> e = session.getAttributeNames(); e.hasMoreElements();) {
+        for (@SuppressWarnings("unchecked")
+        Enumeration<String> e = session.getAttributeNames(); e.hasMoreElements();) {
             String name = e.nextElement();
             setXSLParameter(name, session.getAttribute(name).toString());
         }
@@ -218,7 +219,8 @@ public class MCRParameterCollector {
      * others will be ignored. The "XSL." prefix is cut off from the name.
      */
     private void setFromRequestParameters(HttpServletRequest request) {
-        for (Enumeration<String> e = request.getParameterNames(); e.hasMoreElements();) {
+        for (@SuppressWarnings("unchecked")
+        Enumeration<String> e = request.getParameterNames(); e.hasMoreElements();) {
             String name = e.nextElement();
             if (!(name.endsWith(".SESSION")))
                 setXSLParameter(name, request.getParameter(name));
@@ -230,7 +232,8 @@ public class MCRParameterCollector {
      * others will be ignored. The "XSL." prefix is cut off from the name.
      */
     private void setFromRequestAttributes(HttpServletRequest request) {
-        for (Enumeration<String> e = request.getAttributeNames(); e.hasMoreElements();) {
+        for (@SuppressWarnings("unchecked")
+        Enumeration<String> e = request.getAttributeNames(); e.hasMoreElements();) {
             String name = e.nextElement();
             if (!(name.endsWith(".SESSION"))) {
                 final Object attributeValue = request.getAttribute(name);
@@ -263,8 +266,7 @@ public class MCRParameterCollector {
         parameters.put("WebApplicationBaseURL", MCRServlet.getBaseURL());
         parameters.put("ServletsBaseURL", MCRServlet.getServletBaseURL());
 
-        String defaultLang = MCRConfiguration.instance().getString("MCR.Metadata.DefaultLang",
-            MCRConstants.DEFAULT_LANG);
+        String defaultLang = MCRConfiguration.instance().getString("MCR.Metadata.DefaultLang", MCRConstants.DEFAULT_LANG);
         parameters.put("DefaultLang", defaultLang);
     }
 
@@ -302,13 +304,8 @@ public class MCRParameterCollector {
     }
 
     private StringBuilder getBaseURLUpToHostName() {
-        int schemeLength = "https://".length();
-        String baseURL = MCRServlet.getBaseURL();
-        StringBuilder buffer = new StringBuilder(baseURL);
-        if (baseURL.length() < schemeLength) {
-            return buffer;
-        }
-        int pos = buffer.indexOf("/", schemeLength);
+        StringBuilder buffer = new StringBuilder(MCRServlet.getBaseURL());
+        int pos = buffer.indexOf("/", "https://".length());
         buffer.delete(pos, buffer.length());
         return buffer;
     }

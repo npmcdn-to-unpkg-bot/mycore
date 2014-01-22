@@ -1,48 +1,51 @@
 package org.mycore.common;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.mycore.datamodel.common.MCRXMLMetadataManager;
 
 public abstract class MCRStoreTestCase extends MCRHibTestCase {
 
     private static MCRXMLMetadataManager store;
 
-    @Rule
-    public TemporaryFolder storeBaseDir = new TemporaryFolder();
+    private static Path storeBaseDir;
 
-    @Rule
-    public TemporaryFolder svnBaseDir = new TemporaryFolder();
+    private static Path svnBaseDir;
 
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
+    @BeforeClass
+    public static void init() throws Exception {
+        storeBaseDir = Files.createTempDirectory(MCRStoreTestCase.class.getSimpleName());
+        setProperty("MCR.Metadata.Store.BaseDir", storeBaseDir.toString(), true);
+        svnBaseDir = Files.createTempDirectory(MCRStoreTestCase.class.getSimpleName() + "_svn");
+        setProperty("MCR.Metadata.Store.SVNBase", svnBaseDir.toUri().toString(), true);
         store = MCRXMLMetadataManager.instance();
         store.reload();
     }
 
-    public Path getStoreBaseDir() {
-        return storeBaseDir.getRoot().toPath();
+    @AfterClass
+    public static void destroy() throws Exception {
+        if (storeBaseDir != null) {
+            FileUtils.deleteDirectory(storeBaseDir.toFile());
+        }
+        if (svnBaseDir != null) {
+            FileUtils.deleteDirectory(svnBaseDir.toFile());
+        }
     }
 
-    public Path getSvnBaseDir() {
-        return svnBaseDir.getRoot().toPath();
+    public static Path getStoreBaseDir() {
+        return storeBaseDir;
+    }
+
+    public static Path getSvnBaseDir() {
+        return svnBaseDir;
     }
 
     public static MCRXMLMetadataManager getStore() {
         return store;
-    }
-
-    @Override
-    protected Map<String, String> getTestProperties() {
-        Map<String, String> testProperties = super.getTestProperties();
-        testProperties.put("MCR.Metadata.Store.BaseDir", storeBaseDir.getRoot().getAbsolutePath());
-        testProperties.put("MCR.Metadata.Store.SVNBase", svnBaseDir.getRoot().toURI().toString());
-        return testProperties;
     }
 
 }

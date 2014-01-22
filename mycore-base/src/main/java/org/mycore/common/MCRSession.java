@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
 import org.hibernate.Transaction;
 import org.mycore.backend.hibernate.MCRHIBConnection;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.events.MCRSessionEvent;
 import org.mycore.common.events.MCRSessionListener;
 
@@ -441,13 +440,7 @@ public class MCRSession implements Cloneable {
      * @return true if the transaction is still alive
      */
     public boolean isTransactionActive() {
-        if (!dataBaseAccess) {
-            return false;
-        }
-        if (transaction.get() == null) {
-            transaction.set(MCRHIBConnection.instance().getSession().getTransaction());
-        }
-        return transaction.get() != null && transaction.get().isActive();
+        return dataBaseAccess && transaction.get() != null && transaction.get().isActive();
     }
 
     public StackTraceElement[] getConstructingStackTrace() {

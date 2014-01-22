@@ -25,7 +25,7 @@ package org.mycore.common.content.transformer;
 
 import java.util.HashMap;
 
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 
 /**
  * Creates and returns MCRContentTransformer instances by their ID.
@@ -42,11 +42,10 @@ public class MCRContentTransformerFactory {
      * it is created and initialized.
      */
     public static MCRContentTransformer getTransformer(String id) {
-        if (transformers.containsKey(id)) {
+        if (transformers.containsKey(id))
             return transformers.get(id);
-        } else {
+        else
             return buildTransformer(id);
-        }
     }
 
     /**
@@ -56,14 +55,10 @@ public class MCRContentTransformerFactory {
         String property = "MCR.ContentTransformer." + id + ".Class";
         MCRConfiguration config = MCRConfiguration.instance();
 
-        if (config.getString(property, null) == null) {
-            //check for reasonable default:
-            String stylesheets = config.getString("MCR.ContentTransformer." + id + ".Stylesheet", null);
-            if (stylesheets == null) {
-                return null;
-            }
-        }
-        MCRContentTransformer transformer = config.getInstanceOf(property, MCRXSLTransformer.class.getCanonicalName());
+        if (config.getString(property, null) == null)
+            return null;
+
+        MCRContentTransformer transformer = (MCRContentTransformer) (config.getInstanceOf(property));
         transformer.init(id);
         transformers.put(id, transformer);
         return transformer;

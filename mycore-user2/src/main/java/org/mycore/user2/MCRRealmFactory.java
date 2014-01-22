@@ -40,8 +40,8 @@ import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.Namespace;
 import org.jdom2.transform.JDOMSource;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRException;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.content.MCRFileContent;
 import org.mycore.common.content.MCRSourceContent;
 import org.mycore.common.xml.MCRXMLParserFactory;
@@ -147,7 +147,6 @@ public class MCRRealmFactory {
             Element login = child.getChild("login");
             realm.setLoginURL(login.getAttributeValue("url"));
             realm.setRedirectParameter(login.getAttributeValue("redirectParameter"));
-            realm.setRealmParameter(login.getAttributeValue("realmParameter"));
             Element createElement = child.getChild("create");
             if (createElement != null) {
                 realm.setCreateURL(createElement.getAttributeValue("url"));

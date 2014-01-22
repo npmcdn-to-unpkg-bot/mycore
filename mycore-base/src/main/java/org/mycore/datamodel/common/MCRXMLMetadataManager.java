@@ -29,22 +29,18 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
 import org.jdom2.JDOMException;
 import org.mycore.common.MCRCache;
+import org.mycore.common.MCRConfiguration;
+import org.mycore.common.MCRConfigurationException;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRPersistenceException;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.common.config.MCRConfigurationException;
 import org.mycore.common.content.MCRByteContent;
 import org.mycore.common.content.MCRContent;
 import org.mycore.common.content.MCRJDOMContent;
@@ -52,7 +48,6 @@ import org.mycore.datamodel.ifs2.MCRMetadataStore;
 import org.mycore.datamodel.ifs2.MCRMetadataVersion;
 import org.mycore.datamodel.ifs2.MCRObjectIDFileSystemDate;
 import org.mycore.datamodel.ifs2.MCRStore;
-import org.mycore.datamodel.ifs2.MCRStoreCenter;
 import org.mycore.datamodel.ifs2.MCRStoreManager;
 import org.mycore.datamodel.ifs2.MCRStoredMetadata;
 import org.mycore.datamodel.ifs2.MCRVersionedMetadata;
@@ -69,7 +64,7 @@ import org.xml.sax.SAXException;
  * For configuration, at least the following properties must be set:
  * 
  * MCR.Metadata.Store.BaseDir=/path/to/metadata/dir 
- * MCR.Metadata.Store.SVNBase=file:///path/to/local/svndir/
+ * MCR.Metadata.Store.SVNBase=file:///path/to/local/svndir
  * 
  * Both directories will be created if they do not exist yet.
  * For each project and type, a subdirectory will be created,
@@ -86,7 +81,7 @@ import org.xml.sax.SAXException;
  * and overwrite the defaults, for example
  * 
  * MCR.IFS2.Store.Class=org.mycore.datamodel.ifs2.MCRVersioningMetadataStore
- * MCR.IFS2.Store.SVNRepositoryURL=file:///use/other/location/for/document/versions/
+ * MCR.IFS2.Store.SVNRepositoryURL=file:///use/other/location/for/document/versions
  * MCR.IFS2.Store.SlotLayout=2-2-2-2
  * 
  * See documentation of MCRStore and MCRMetadataStore for details.
@@ -102,8 +97,8 @@ public class MCRXMLMetadataManager {
 
         private final MCRObjectID id;
 
-        private StoreModifiedHandle(MCRObjectID id, long time, TimeUnit unit) {
-            this.expire = unit.toMillis(time);
+        private StoreModifiedHandle(MCRObjectID id, long expire) {
+            this.expire = expire;
             this.id = id;
         }
 
@@ -121,8 +116,6 @@ public class MCRXMLMetadataManager {
     /** The singleton */
     private static MCRXMLMetadataManager SINGLETON;
 
-    private HashSet<String> createdStores;
-
     /** Returns the singleton */
     public static synchronized MCRXMLMetadataManager instance() {
         if (SINGLETON == null) {
@@ -132,14 +125,13 @@ public class MCRXMLMetadataManager {
     }
 
     protected MCRXMLMetadataManager() {
-        this.createdStores = new HashSet<>();
         reload();
     }
 
     /**
      * Reads configuration properties, checks and creates base directories and builds the singleton
      */
-    public synchronized void reload() {
+    public void reload() {
         MCRConfiguration config = MCRConfiguration.instance();
 
         String pattern = config.getString("MCR.Metadata.ObjectID.NumberPattern", "0000000000");
@@ -149,8 +141,7 @@ public class MCRXMLMetadataManager {
         baseDir = new File(base);
         checkDir(baseDir, "base");
 
-        defaultClass = config.getString("MCR.Metadata.Store.DefaultClass",
-            "org.mycore.datamodel.ifs2.MCRVersioningMetadataStore");
+        defaultClass = config.getString("MCR.Metadata.Store.DefaultClass", "org.mycore.datamodel.ifs2.MCRVersioningMetadataStore");
         Class<?> impl;
         try {
             impl = Class.forName(defaultClass);
@@ -158,37 +149,17 @@ public class MCRXMLMetadataManager {
             throw new MCRException("Could not load default class " + defaultClass);
         }
         if (MCRVersioningMetadataStore.class.isAssignableFrom(impl)) {
-            try {
-                String svnBaseValue = config.getString("MCR.Metadata.Store.SVNBase");
-                if (!svnBaseValue.endsWith("/")) {
-                    svnBaseValue += '/';
+            svnBase = config.getString("MCR.Metadata.Store.SVNBase");
+            if (svnBase.startsWith("file:///")) {
+                try {
+                    svnDir = new File(new URI(svnBase));
+                } catch (URISyntaxException ex) {
+                    String msg = "Syntax error in MCR.Metadata.Store.SVNBase property: " + svnBase;
+                    throw new MCRConfigurationException(msg, ex);
                 }
-                svnBase = new URI(svnBaseValue);
-                LOGGER.info("SVN Base: " + svnBase);
-                if (svnBase.getScheme() == null) {
-                    String workingDirectory = (new File(".")).getAbsolutePath();
-                    URI root = new File(MCRConfiguration.instance().getString("MCR.datadir", workingDirectory)).toURI();
-                    URI resolved = root.resolve(svnBase);
-                    LOGGER.warn("Resolved " + svnBase + " to " + resolved);
-                    svnBase = resolved;
-                }
-            } catch (URISyntaxException ex) {
-                String msg = "Syntax error in MCR.Metadata.Store.SVNBase property: " + svnBase;
-                throw new MCRConfigurationException(msg, ex);
-            }
-            if (svnBase.getScheme().equals("file")) {
-                svnDir = new File(svnBase);
                 checkDir(svnDir, "svn");
             }
         }
-        closeCreatedStores();
-    }
-
-    private synchronized void closeCreatedStores() {
-        for (String storeId : createdStores) {
-            MCRStoreCenter.instance().removeStore(storeId);
-        }
-        createdStores.clear();
     }
 
     /**
@@ -248,7 +219,7 @@ public class MCRXMLMetadataManager {
     /**
      * The local file:// uri of all SVN versioned metadata, set URI by MCR.Metadata.Store.SVNBase
      */
-    private URI svnBase;
+    private String svnBase;
 
     public static final int REV_LATEST = -1;
 
@@ -263,7 +234,7 @@ public class MCRXMLMetadataManager {
      * @throws InstantiationException 
      */
     public MCRMetadataStore getStore(String project, String type) {
-        String projectType = getStoryKey(project, type);
+        String projectType = project + "_" + type;
         String prefix = "MCR.IFS2.Store." + projectType + ".";
         String forceXML = MCRConfiguration.instance().getString(prefix + "ForceXML", null);
         if (forceXML == null) {
@@ -272,7 +243,7 @@ public class MCRXMLMetadataManager {
                 if (forceXML == null) {
                     try {
                         setupStore(project, type, prefix);
-                    } catch (IllegalAccessException | InstantiationException e) {
+                    } catch (Exception e) {
                         throw new MCRPersistenceException(MessageFormat.format(
                             "Could not instantiate store for project {0} and object type {1}.", project, type), e);
                     }
@@ -282,17 +253,16 @@ public class MCRXMLMetadataManager {
 
         MCRMetadataStore store = MCRStoreManager.getStore(projectType, MCRMetadataStore.class);
         if (store == null) {
-            throw new MCRPersistenceException(MessageFormat.format(
-                "Metadata store for project {0} and object type {1} is unconfigured.", project, type));
+            throw new MCRPersistenceException(MessageFormat.format("Metadata store for project {0} and object type {1} is unconfigured.",
+                project, type));
         }
         return store;
     }
 
     @SuppressWarnings("unchecked")
-    private void setupStore(String project, String objectType, String configPrefix) throws InstantiationException,
-        IllegalAccessException {
+    private void setupStore(String project, String objectType, String configPrefix) throws InstantiationException, IllegalAccessException {
         MCRConfiguration config = MCRConfiguration.instance();
-        String baseID = getStoryKey(project, objectType);
+        String baseID = project + "_" + objectType;
         String clazz = config.getString(configPrefix + "Class", null);
         if (clazz == null) {
             config.set(configPrefix + "Class", defaultClass);
@@ -305,13 +275,10 @@ public class MCRXMLMetadataManager {
             throw new MCRException("Could not load class " + clazz + " for " + baseID);
         }
         if (MCRVersioningMetadataStore.class.isAssignableFrom(impl)) {
-            String property = configPrefix + "SVNRepositoryURL";
-            String svnURL = config.getString(property, null);
+            String svnURL = config.getString(configPrefix + "SVNRepositoryURL", null);
             if (svnURL == null) {
-                String relativeURI = MessageFormat.format("{0}/{1}/", project, objectType);
-                URI repURI = svnBase.resolve(relativeURI);
-                LOGGER.info("Resolved " + relativeURI + " to " + repURI.toASCIIString() + " for " + property);
-                config.set(property, repURI.toASCIIString());
+                config.set(configPrefix + "SVNRepositoryURL", svnBase + "/" + project + "/" + objectType);
+
                 File projectDir = new File(svnDir, project);
                 if (!projectDir.exists()) {
                     projectDir.mkdirs();
@@ -337,12 +304,8 @@ public class MCRXMLMetadataManager {
         config.set(configPrefix + "BaseDir", typeDir.getAbsolutePath());
         config.set(configPrefix + "ForceXML", true);
         config.set(configPrefix + "ForceDocType", objectType.equals("derivate") ? "mycorederivate" : "mycoreobject");
-        createdStores.add(baseID);
-        MCRStoreManager.createStore(baseID, impl);
-    }
 
-    private String getStoryKey(String project, String objectType) {
-        return project + "_" + objectType;
+        MCRStoreManager.createStore(baseID, impl);
     }
 
     /**
@@ -545,11 +508,10 @@ public class MCRXMLMetadataManager {
      * 
      * @param mcrid the MCRObjectID 
      * @throws IOException 
-     * @returns null if metadata is not present 
      */
     public byte[] retrieveBLOB(MCRObjectID mcrid) throws IOException {
         MCRContent metadata = retrieveContent(mcrid);
-        return metadata == null ? null : metadata.asByteArray();
+        return metadata.asByteArray();
     }
 
     public MCRContent retrieveContent(MCRObjectID mcrid) throws IOException {
@@ -711,15 +673,13 @@ public class MCRXMLMetadataManager {
      */
     public List<String> listIDsOfType(String type) {
         List<String> list = new ArrayList<String>();
-        File[] projectDirectories = getProjectDirectories();
-        for (File projectDirectory : projectDirectories) {
-            String project = projectDirectory.getName();
-            File[] objectTypeDirectories = getObjectTypeDirectories(projectDirectory);
-            for (File fType : objectTypeDirectories) {
+        for (File fProject : baseDir.listFiles()) {
+            String project = fProject.getName();
+            for (File fType : fProject.listFiles()) {
                 if (!type.equals(fType.getName())) {
                     continue;
                 }
-                String base = getStoryKey(project, type);
+                String base = project + "_" + type;
                 list.addAll(listIDsForBase(base));
             }
         }
@@ -731,64 +691,15 @@ public class MCRXMLMetadataManager {
      */
     public List<String> listIDs() {
         List<String> list = new ArrayList<String>();
-        File[] projectDirectories = getProjectDirectories();
-        for (File projectDirectory : projectDirectories) {
-            String project = projectDirectory.getName();
-            File[] objectTypeDirectories = getObjectTypeDirectories(projectDirectory);
-            for (File objectTypeDirectory : objectTypeDirectories) {
-                String type = objectTypeDirectory.getName();
-                String base = getStoryKey(project, type);
+        for (File fProject : baseDir.listFiles()) {
+            String project = fProject.getName();
+            for (File fType : fProject.listFiles()) {
+                String type = fType.getName();
+                String base = project + "_" + type;
                 list.addAll(listIDsForBase(base));
             }
         }
         return list;
-    }
-
-    /**
-     * Returns all stored object types of MCRObjects.
-     * 
-     * @return collection of object types
-     * @see MCRObjectID#getTypeId();
-     */
-    public Collection<String> getObjectTypes() {
-        Set<String> set = new java.util.HashSet<>();
-        File[] projectDirectories = getProjectDirectories();
-        for (File projectDirectory : projectDirectories) {
-            File[] objectTypeDirectories = getObjectTypeDirectories(projectDirectory);
-            for (File objectTypeDirectory : objectTypeDirectories) {
-                set.add(objectTypeDirectory.getName());
-            }
-        }
-        return set;
-    }
-
-    /**
-     * Returns an array of project directories. Throws a MCRException
-     * if an I/O-Exceptions occur.
-     * 
-     * @return list of project directories
-     */
-    private File[] getProjectDirectories() {
-        File[] projectDirectories = baseDir.listFiles();
-        if (projectDirectories == null) {
-            throw new MCRException("unable to list files of IFS2 metadata directory " + baseDir.getAbsolutePath());
-        }
-        return projectDirectories;
-    }
-
-    /**
-     * Returns an array of object type directories based on the project directory. You
-     * should call {@link #getProjectDirectories()} first in order to get the available
-     * projects. Throws a MCRException if an I/O-Exceptions occur.
-     * 
-     * @return list of object type directories
-     */
-    private File[] getObjectTypeDirectories(File projectDirectory) {
-        File[] objectTypeDirectories = projectDirectory.listFiles();
-        if (objectTypeDirectories == null) {
-            throw new MCRException("unable to list files of IFS2 metadata directory " + projectDirectory.getAbsolutePath());
-        }
-        return objectTypeDirectories;
     }
 
     /**
@@ -842,7 +753,7 @@ public class MCRXMLMetadataManager {
         return -1;
     }
 
-    public MCRCache.ModifiedHandle getLastModifiedHandle(final MCRObjectID id, final long expire, TimeUnit unit) {
-        return new StoreModifiedHandle(id, expire, unit);
+    public MCRCache.ModifiedHandle getLastModifiedHandle(final MCRObjectID id, final long expire) {
+        return new StoreModifiedHandle(id, expire);
     }
 }

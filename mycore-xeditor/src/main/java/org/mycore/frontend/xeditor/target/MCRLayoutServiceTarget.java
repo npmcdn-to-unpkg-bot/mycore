@@ -25,38 +25,32 @@ package org.mycore.frontend.xeditor.target;
 
 import javax.servlet.ServletContext;
 
-import org.jdom2.Document;
 import org.mycore.common.content.MCRContent;
 import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.common.xml.MCRLayoutService;
 import org.mycore.frontend.servlets.MCRServletJob;
 import org.mycore.frontend.xeditor.MCREditorSession;
-import org.mycore.frontend.xeditor.tracker.MCRChangeTracker;
 
 /**
  * @author Frank L\u00FCtzenkirchen
  */
-public class MCRLayoutServiceTarget implements MCREditorTarget {
+public class MCRLayoutServiceTarget extends MCREditorTarget {
 
     @Override
     public void handleSubmission(ServletContext context, MCRServletJob job, MCREditorSession session, String style) throws Exception {
-        session.getSubmission().setSubmittedValues(job.getRequest().getParameterMap());
-        Document result = session.getEditedXML();
+        setSubmittedValues(job, session);
 
-        if (session.getValidator().isValid()) {
-            result = MCRChangeTracker.removeChangeTracking(result);
-            result = session.getXMLCleaner().clean(result);
-            result = session.getPostProcessor().process(result);
-
-            if ((style != null) && (!style.isEmpty()))
-                job.getRequest().setAttribute("XSL.Style", style);
-
-            MCRContent editedXML = new MCRJDOMContent(result);
-            MCRLayoutService.instance().doLayout(job.getRequest(), job.getResponse(), editedXML);
-            session.setBreakpoint("After handling target layout " + style);
-        } else {
-            session.setBreakpoint("After validation failed, target layout " + style);
-            job.getResponse().sendRedirect(session.getRedirectURL());
+        if (session.validate().failed()) {
+            redirectToEditorPage(job, session);
+            return;
         }
+
+        session.removeDeletedNodes();
+
+        if ((style != null) && (!style.isEmpty()))
+            job.getRequest().setAttribute("XSL.Style", style);
+
+        MCRContent editedXML = new MCRJDOMContent(session.getPostProcessedXML());
+        MCRLayoutService.instance().doLayout(job.getRequest(), job.getResponse(), editedXML);
     }
 }

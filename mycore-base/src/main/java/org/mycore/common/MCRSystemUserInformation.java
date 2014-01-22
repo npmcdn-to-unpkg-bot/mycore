@@ -23,8 +23,6 @@
 
 package org.mycore.common;
 
-import org.mycore.common.config.MCRConfiguration;
-
 /**
  * A {@link MCRUserInformation} implementation with no roles attached.
  * @author Thomas Scheffler (yagee)
@@ -32,20 +30,21 @@ import org.mycore.common.config.MCRConfiguration;
  */
 public class MCRSystemUserInformation implements MCRUserInformation {
 
-    private static MCRSystemUserInformation systemInstance = new MCRSystemUserInformation(new UserIdResolver("SYSTEM",
-        null), false);
+    private static final MCRConfiguration CONFIG = MCRConfiguration.instance();
 
-    private static MCRSystemUserInformation guestInstance = new MCRSystemUserInformation(new UserIdResolver("guest",
-        "MCR.Users.Guestuser.UserName"), false);
+    private static MCRSystemUserInformation systemInstance = new MCRSystemUserInformation("SYSTEM", false);
 
-    private static MCRSystemUserInformation superUserInstance = new MCRSystemUserInformation(new UserIdResolver(
-        "administrator", "MCR.Users.Superuser.UserName"), true);
+    private static MCRSystemUserInformation guestInstance = new MCRSystemUserInformation(CONFIG.getString("MCR.Users.Guestuser.UserName",
+        "guest"), false);
+
+    private static MCRSystemUserInformation superUserInstance = new MCRSystemUserInformation(CONFIG.getString(
+        "MCR.Users.Superuser.UserName", "administrator"), true);
 
     private boolean roleReturn;
 
-    private UserIdResolver userID;
+    private String userID;
 
-    private MCRSystemUserInformation(UserIdResolver userID, boolean roleReturn) {
+    private MCRSystemUserInformation(String userID, boolean roleReturn) {
         this.userID = userID;
         this.roleReturn = roleReturn;
     }
@@ -55,7 +54,7 @@ public class MCRSystemUserInformation implements MCRUserInformation {
      */
     @Override
     public String getUserID() {
-        return userID.getUserId();
+        return userID;
     }
 
     /**
@@ -90,24 +89,6 @@ public class MCRSystemUserInformation implements MCRUserInformation {
      */
     public static MCRSystemUserInformation getSuperUserInstance() {
         return superUserInstance;
-    }
-
-    private static class UserIdResolver {
-        private String userId;
-
-        private String property;
-
-        public UserIdResolver(String userId, String property) {
-            this.userId = userId;
-            this.property = property;
-        }
-
-        public String getUserId() {
-            if (property == null) {
-                return userId;
-            }
-            return MCRConfiguration.instance().getString(property, userId);
-        }
     }
 
 }

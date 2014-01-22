@@ -12,34 +12,30 @@ import java.io.PrintWriter;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.TransformerException;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.protocol.HTTP;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.params.ModifiableSolrParams;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.content.MCRStreamContent;
 import org.mycore.common.xml.MCRLayoutService;
 import org.mycore.frontend.servlets.MCRServlet;
 import org.mycore.frontend.servlets.MCRServletJob;
-import org.xml.sax.SAXException;
 
 public class MCRSolrProxyServlet extends MCRServlet {
 
@@ -64,7 +60,7 @@ public class MCRSolrProxyServlet extends MCRServlet {
     private static int MAX_CONNECTIONS = MCRConfiguration.instance().getInt(
         CONFIG_PREFIX + "SelectProxy.MaxConnections");
 
-    private CloseableHttpClient httpClient;
+    private HttpClient httpClient;
 
     private MCRIdleConnectionMonitorThread idleConnectionMonitorThread;
 
@@ -72,17 +68,11 @@ public class MCRSolrProxyServlet extends MCRServlet {
 
     private Map<String, MCRSolrQueryHandler> queryHandlerMap;
 
-    private PoolingHttpClientConnectionManager httpClientConnectionManager;
-
     @Override
     protected void doGetPost(MCRServletJob job) throws Exception {
         HttpServletRequest request = job.getRequest();
         HttpServletResponse resp = job.getResponse();
-        Document input = (Document) request.getAttribute("MCRXEditorSubmission");
-        if (input != null) {
-            getQueryHandlerAndPrepareParameterMap(input, resp);
-            return;
-        }
+
         String queryHandlerPath = request.getPathInfo();
         if (queryHandlerPath == null) {
             boolean refresh = "true".equals(getProperty(request, "refresh"));
@@ -102,29 +92,12 @@ public class MCRSolrProxyServlet extends MCRServlet {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "No access to " + queryHandler.toString());
             return;
         }
+
         handleQuery(queryHandler, request, resp);
     }
 
-    private void getQueryHandlerAndPrepareParameterMap(Document input, HttpServletResponse resp) throws IOException,
-        TransformerException, SAXException {
-        LinkedHashMap<String, String[]> parameters = new LinkedHashMap<>();
-        List<Element> children = input.getRootElement().getChildren();
-        for (Element param : children) {
-            String attribute = param.getAttributeValue("name");
-            if (attribute != null) {
-                parameters.put(attribute, new String[] { param.getTextTrim() });
-            }
-        }
-        String queryHandlerPath = parameters.get("qt")[0];
-        parameters.remove("qt");
-        String requestURL = MessageFormat.format("{0}solr{1}?{2}", getServletBaseURL(), queryHandlerPath,
-            getQueryString(parameters));
-        LOGGER.info("Redirect XEditor input to: " + requestURL);
-        resp.sendRedirect(resp.encodeRedirectURL(requestURL));
-    }
-
     private void handleQuery(MCRSolrQueryHandler queryHandler, HttpServletRequest request, HttpServletResponse resp)
-        throws IOException, TransformerException, SAXException {
+        throws IOException {
         ModifiableSolrParams solrParameter = getSolrQueryParameter(request);
         HttpGet solrHttpMethod = MCRSolrProxyServlet.getSolrHttpMethod(queryHandler, solrParameter);
         try {
@@ -225,23 +198,18 @@ public class MCRSolrProxyServlet extends MCRServlet {
         if (solrHost == null) {
             throw new ServletException("URI does not specify a valid host name: " + SERVER_URL);
         }
-        httpClientConnectionManager = MCRSolrProxyUtils.getConnectionManager(MAX_CONNECTIONS);
-        httpClient = MCRSolrProxyUtils.getHttpClient(httpClientConnectionManager, MAX_CONNECTIONS);
+        httpClient = MCRSolrProxyUtils.getHttpClient(MAX_CONNECTIONS);
 
         //start thread to monitor stalled connections
-        idleConnectionMonitorThread = new MCRIdleConnectionMonitorThread(httpClientConnectionManager);
+        idleConnectionMonitorThread = new MCRIdleConnectionMonitorThread(httpClient.getConnectionManager());
         idleConnectionMonitorThread.start();
     }
 
     @Override
     public void destroy() {
         idleConnectionMonitorThread.shutdown();
-        try {
-            httpClient.close();
-        } catch (IOException e) {
-            log("Could not close HTTP client to SOLR server.", e);
-        }
-        httpClientConnectionManager.shutdown();
+        ClientConnectionManager clientConnectionManager = httpClient.getConnectionManager();
+        clientConnectionManager.shutdown();
         super.destroy();
     }
 

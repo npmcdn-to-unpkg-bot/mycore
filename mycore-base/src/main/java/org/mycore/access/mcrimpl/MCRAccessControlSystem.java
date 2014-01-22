@@ -39,11 +39,11 @@ import org.jdom2.Element;
 import org.mycore.access.MCRAccessBaseImpl;
 import org.mycore.access.MCRAccessInterface;
 import org.mycore.common.MCRCache;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRConstants;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
-import org.mycore.common.config.MCRConfiguration;
 
 /**
  * MyCoRe-Standard Implementation of the MCRAccessInterface
@@ -280,11 +280,9 @@ public class MCRAccessControlSystem extends MCRAccessBaseImpl {
         }
         LOGGER.debug("accessStore.getRuleID()");
         String ruleID = accessStore.getRuleID(objID, pool);
+        LOGGER.debug("accessStore.getRuleID() done.");
         if (ruleID == null) {
-            LOGGER.debug("accessStore.getRuleID() done with null");
             return null;
-        } else {
-            LOGGER.debug("accessStore.getRuleID() done with " + ruleID);
         }
         MCRAccessRule a = cache.get(ruleID);
         if (a == null) {

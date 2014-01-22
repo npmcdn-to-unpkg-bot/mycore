@@ -19,8 +19,8 @@ import org.mycore.backend.hibernate.MCRHIBConnection;
 import org.mycore.backend.hibernate.tables.MCRACCESS;
 import org.mycore.backend.hibernate.tables.MCRACCESSRULE;
 import org.mycore.common.MCRCache;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRException;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.services.acl.filter.MCRAclCriterionFilter;
 
 /**
@@ -74,10 +74,10 @@ public abstract class MCRACLHIBAccess {
      * @param filterPrefix selects the code>MCRAclCriterionFilter</code> classes
      */
     public static void filterQuery(Criteria query, Properties filterProperties, String filterPrefix) {
-        Map<String, String> filters = MCRConfiguration.instance().getPropertiesMap(filterPrefix);
-        for(String filterClass : filters.values()) {
+        Properties filters = MCRConfiguration.instance().getProperties(filterPrefix);
+        for(Object filterClass : filters.values()) {
             try {
-                Class<?> c = Class.forName(filterClass);
+                Class<?> c = Class.forName(filterClass.toString());
                 Object o = c.newInstance();
                 if(o instanceof MCRAclCriterionFilter) {
                     Criterion criterion = ((MCRAclCriterionFilter)o).filter(filterProperties);

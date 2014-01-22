@@ -2,7 +2,6 @@ package org.mycore.frontend.classeditor;
 
 import static org.mycore.frontend.classeditor.json.MCRJSONCategoryPropName.CHILDREN;
 import static org.mycore.frontend.classeditor.json.MCRJSONCategoryPropName.ID;
-import static org.mycore.frontend.classeditor.json.MCRJSONCategoryPropName.HASLINK;
 import static org.mycore.frontend.classeditor.json.MCRJSONCategoryPropName.LABELS;
 import static org.mycore.frontend.classeditor.json.MCRJSONCategoryPropName.PARENTID;
 import static org.mycore.frontend.classeditor.json.MCRJSONCategoryPropName.POSITION;
@@ -14,9 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.mycore.common.MCRConfiguration;
+import org.mycore.common.MCRConfigurationException;
 import org.mycore.common.MCRJSONTypeAdapter;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.common.config.MCRConfigurationException;
 import org.mycore.datamodel.classifications2.MCRCategLinkService;
 import org.mycore.datamodel.classifications2.MCRCategLinkServiceFactory;
 import org.mycore.datamodel.classifications2.MCRCategory;
@@ -90,9 +89,6 @@ public class MCRCategoryTypeAdapter extends MCRJSONTypeAdapter<MCRJSONCategory> 
         if (category.hasChildren()) {
             List<MCRCategory> children = category.getChildren();
             Map<MCRCategoryID, Boolean> linkMap = getLinkService().hasLinks(category);
-            if(linkMap.values().contains(true)) {
-                rubricJsonObject.addProperty(HASLINK, true);
-            }
             rubricJsonObject.add(CHILDREN, contextSerialization.serialize(new MCRCategoryListWrapper(children, linkMap)));
         }
 

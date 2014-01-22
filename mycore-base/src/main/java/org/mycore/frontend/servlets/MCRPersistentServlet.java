@@ -37,7 +37,6 @@ import java.util.Properties;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.TransformerException;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
@@ -47,11 +46,11 @@ import org.jdom2.Namespace;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 import org.mycore.access.MCRAccessManager;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRPersistenceException;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.MCRUtils;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.common.xml.MCRURIResolver;
 import org.mycore.common.xml.MCRXMLParserErrorHandler;
@@ -68,7 +67,6 @@ import org.mycore.frontend.editor.MCREditorSubmission;
 import org.mycore.frontend.fileupload.MCRUploadHandlerIFS;
 import org.mycore.frontend.support.MCRObjectIDLockTable;
 import org.mycore.services.i18n.MCRTranslation;
-import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 /**
@@ -546,10 +544,8 @@ public class MCRPersistentServlet extends MCRServlet {
     /**
      * handles validation errors (XML Schema) and present nice pages instead of stack traces.
      * @throws IOException 
-     * @throws SAXException 
-     * @throws TransformerException 
      */
-    private void errorHandlerValid(MCRServletJob job, List<String> logtext) throws IOException, TransformerException, SAXException {
+    private void errorHandlerValid(MCRServletJob job, List<String> logtext) throws IOException {
         // write to the log file
         for (String aLogtext : logtext) {
             LOGGER.error(aLogtext);

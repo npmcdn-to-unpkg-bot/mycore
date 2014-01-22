@@ -41,7 +41,6 @@ import org.mycore.common.content.MCRContent;
 import org.mycore.common.content.transformer.MCRContentTransformer;
 import org.mycore.common.content.transformer.MCRParameterizedTransformer;
 import org.mycore.common.xsl.MCRParameterCollector;
-import org.xml.sax.SAXException;
 
 /**
  * Does the layout for other MyCoRe servlets by transforming XML input to
@@ -76,15 +75,20 @@ public class MCRLayoutService extends MCRDeprecatedLayoutService {
         res.flushBuffer();
     }
 
-    public void doLayout(HttpServletRequest req, HttpServletResponse res, MCRContent source) throws IOException, TransformerException, SAXException {
+    public void doLayout(HttpServletRequest req, HttpServletResponse res, MCRContent source) throws IOException {
+        MCRParameterCollector parameter = new MCRParameterCollector(req);
         String docType = source.getDocType();
+        String transformerId = parameter.getParameter("Transformer", null);
+        if (transformerId == null) {
+            String style = parameter.getParameter("Style", "default");
+            transformerId = MessageFormat.format("{0}-{1}", docType, style);
+        }
+        MCRContentTransformer transformer = MCRLayoutTransformerFactory.getTransformer(transformerId);
+        String filename = getFileName(req, parameter);
         try {
-            MCRParameterCollector parameter = new MCRParameterCollector(req);
-            MCRContentTransformer transformer = getContentTransformer(docType, parameter);
-            String filename = getFileName(req, parameter);
             transform(res, transformer, source, parameter, filename);
-        } catch (IOException | TransformerException | SAXException ex) {
-            throw ex;
+        } catch (IOException ex) {
+            LOGGER.error("IOException while XSL-transforming XML document", ex);
         } catch (MCRException ex) {
             // Check if it is an error page to suppress later recursively
             // generating an error page when there is an error in the stylesheet
@@ -95,19 +99,7 @@ public class MCRLayoutService extends MCRDeprecatedLayoutService {
             String msg = "Error while generating error page!";
             LOGGER.warn(msg, ex);
             res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
-        } catch (Exception e) {
-            throw new MCRException(e);
         }
-    }
-
-    public static MCRContentTransformer getContentTransformer(String docType, MCRParameterCollector parameter) throws Exception {
-        String transformerId = parameter.getParameter("Transformer", null);
-        if (transformerId == null) {
-            String style = parameter.getParameter("Style", "default");
-            transformerId = MessageFormat.format("{0}-{1}", docType, style);
-        }
-        MCRContentTransformer transformer = MCRLayoutTransformerFactory.getTransformer(transformerId);
-        return transformer;
     }
 
     private String getFileName(HttpServletRequest req, MCRParameterCollector parameter) {
@@ -136,52 +128,35 @@ public class MCRLayoutService extends MCRDeprecatedLayoutService {
     }
 
     private void transform(HttpServletResponse response, MCRContentTransformer transformer, MCRContent source,
-        MCRParameterCollector parameter, String filename) throws IOException, TransformerException, SAXException {
+        MCRParameterCollector parameter, String filename) throws IOException {
+        String fileExtension = transformer.getFileExtension();
+        if (fileExtension != null && fileExtension.length() > 0) {
+            filename += "." + fileExtension;
+        }
+        response.setHeader("Content-Disposition", "inline;filename=\"" + filename + "\"");
+        String ct = transformer.getMimeType();
+        String enc = transformer.getEncoding();
+        if (enc != null) {
+            response.setCharacterEncoding(enc);
+            response.setContentType(ct + "; charset=" + enc);
+        } else {
+            response.setContentType(ct);
+        }
+        LOGGER.debug("MCRLayoutService starts to output " + response.getContentType());
+        ServletOutputStream servletOutputStream = response.getOutputStream();
+        long start = System.currentTimeMillis();
         try {
-            String fileExtension = transformer.getFileExtension();
-            if (fileExtension != null && fileExtension.length() > 0) {
-                filename += "." + fileExtension;
-            }
-            response.setHeader("Content-Disposition", "inline;filename=\"" + filename + "\"");
-            String ct = transformer.getMimeType();
-            String enc = transformer.getEncoding();
-            if (enc != null) {
-                response.setCharacterEncoding(enc);
-                response.setContentType(ct + "; charset=" + enc);
+            ByteArrayOutputStream bout = new ByteArrayOutputStream(INITIAL_BUFFER_SIZE);
+            if (transformer instanceof MCRParameterizedTransformer) {
+                MCRParameterizedTransformer paramTransformer = (MCRParameterizedTransformer) transformer;
+                paramTransformer.transform(source, bout, parameter);
             } else {
-                response.setContentType(ct);
+                transformer.transform(source, bout);
             }
-            LOGGER.debug("MCRLayoutService starts to output " + response.getContentType());
-            ServletOutputStream servletOutputStream = response.getOutputStream();
-            long start = System.currentTimeMillis();
-            try {
-                ByteArrayOutputStream bout = new ByteArrayOutputStream(INITIAL_BUFFER_SIZE);
-                if (transformer instanceof MCRParameterizedTransformer) {
-                    MCRParameterizedTransformer paramTransformer = (MCRParameterizedTransformer) transformer;
-                    paramTransformer.transform(source, bout, parameter);
-                } else {
-                    transformer.transform(source, bout);
-                }
-                response.setContentLength(bout.size());
-                bout.writeTo(servletOutputStream);
-            } finally {
-                LOGGER.debug("MCRContent transformation took " + (System.currentTimeMillis() - start) + " ms.");
-            }
-        } catch (TransformerException | IOException | SAXException e) {
-            throw e;
-        } catch (Exception e) {
-            Throwable cause = e.getCause();
-            while (cause != null) {
-                if (cause instanceof TransformerException) {
-                    throw (TransformerException) cause;
-                } else if (cause instanceof SAXException) {
-                    throw (SAXException) cause;
-                } else if (cause instanceof IOException) {
-                    throw (IOException) cause;
-                }
-                cause = cause.getCause();
-            }
-            throw new IOException(e);
+            response.setContentLength(bout.size());
+            bout.writeTo(servletOutputStream);
+        } finally {
+            LOGGER.debug("MCRContent transformation took " + (System.currentTimeMillis() - start) + " ms.");
         }
     }
 

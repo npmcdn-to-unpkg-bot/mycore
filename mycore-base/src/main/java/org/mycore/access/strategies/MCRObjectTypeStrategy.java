@@ -45,7 +45,7 @@ import org.mycore.datamodel.classifications2.MCRCategoryID;
  * @version $Revision$ $Date$
  */
 public class MCRObjectTypeStrategy implements MCRAccessCheckStrategy {
-    private static final Pattern TYPE_PATTERN = Pattern.compile("[^_]*_([^_]*)_[0-9]*");
+    private static final Pattern TYPE_PATTERN = Pattern.compile("[^_]*_([^_]*)_*");
 
     private static final Logger LOGGER = Logger.getLogger(MCRObjectIDStrategy.class);
 
@@ -62,10 +62,6 @@ public class MCRObjectTypeStrategy implements MCRAccessCheckStrategy {
             LOGGER.debug("using access rule defined for object.");
             return MCRAccessManager.getAccessImpl().checkPermission(id, permission);
         }
-        return checkObjectTypePermission(id, permission);
-    }
-
-    public static boolean checkObjectTypePermission(String id, String permission) {
         String objectType = getObjectType(id);
         if (objectType != null && MCRAccessManager.getAccessImpl().hasRule("default_" + objectType, permission)) {
             LOGGER.debug("using access rule defined for object type.");

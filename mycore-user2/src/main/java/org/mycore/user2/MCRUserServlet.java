@@ -37,9 +37,9 @@ import org.jdom2.filter.Filters;
 import org.jdom2.xpath.XPathExpression;
 import org.jdom2.xpath.XPathFactory;
 import org.mycore.access.MCRAccessManager;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.MCRSystemUserInformation;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.content.MCRJAXBContent;
 import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.datamodel.common.MCRISO8601Date;
@@ -80,13 +80,9 @@ public class MCRUserServlet extends MCRServlet {
         if ((uid == null) || (uid.trim().length() == 0)) {
             user = MCRUserManager.getCurrentUser();
             uid = user != null ? String.valueOf(user.getUserID()) : null;
-            if (!(user instanceof MCRTransientUser)) {
-                //even reload current user, so that owner is correctly initialized
-                user = MCRUserManager.getUser(uid);
-            }
-        } else {
-            user = MCRUserManager.getUser(uid);
         }
+        //even reload current user, so that owner is correctly initialized
+        user = MCRUserManager.getUser(uid);
 
         if ("show".equals(action))
             showUser(req, res, user, uid);
@@ -114,16 +110,14 @@ public class MCRUserServlet extends MCRServlet {
         }
         String url = currentUser.getRealm().getPasswordChangeURL();
         if (url == null) {
-            String msg = MCRTranslation.translate("component.user2.UserServlet.missingRealPasswortChangeURL",
-                currentUser.getRealmID());
+            String msg = MCRTranslation.translate("component.user2.UserServlet.missingRealPasswortChangeURL", currentUser.getRealmID());
             res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
         } else {
             res.sendRedirect(url);
         }
     }
 
-    private static boolean checkUserIsNotNull(HttpServletResponse res, MCRUser currentUser, String userID)
-        throws IOException {
+    private static boolean checkUserIsNotNull(HttpServletResponse res, MCRUser currentUser, String userID) throws IOException {
         if (currentUser == null) {
             String uid = userID == null ? MCRSessionMgr.getCurrentSession().getUserInformation().getUserID() : userID;
             String msg = MCRTranslation.translate("component.user2.UserServlet.currentUserUnknown", uid);
@@ -161,11 +155,10 @@ public class MCRUserServlet extends MCRServlet {
         if (!checkUserIsNotNull(res, currentUser, null) || !checkUserIsNotNull(res, user, uid)) {
             return;
         }
-        boolean allowed = MCRAccessManager.checkPermission(MCRUser2Constants.USER_ADMIN_PERMISSION)
-            || currentUser.equals(user) || currentUser.equals(user.getOwner());
+        boolean allowed = MCRAccessManager.checkPermission(MCRUser2Constants.USER_ADMIN_PERMISSION) || currentUser.equals(user)
+            || currentUser.equals(user.getOwner());
         if (!allowed) {
-            String msg = MCRTranslation.translate("component.user2.UserServlet.noAdminPermission");
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, msg);
+            res.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
@@ -226,11 +219,9 @@ public class MCRUserServlet extends MCRServlet {
             return;
         }
         boolean hasAdminPermission = MCRAccessManager.checkPermission(MCRUser2Constants.USER_ADMIN_PERMISSION);
-        boolean allowed = hasAdminPermission
-            || MCRAccessManager.checkPermission(MCRUser2Constants.USER_CREATE_PERMISSION);
+        boolean allowed = hasAdminPermission || MCRAccessManager.checkPermission(MCRUser2Constants.USER_CREATE_PERMISSION);
         if (!allowed) {
-            String msg = MCRTranslation.translate("component.user2.UserServlet.noCreatePermission");
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, msg);
+            res.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
@@ -308,8 +299,7 @@ public class MCRUserServlet extends MCRServlet {
                 if (hasAdminPermission || currentUser.isUserInRole(groupName)) {
                     user.assignRole(groupName);
                 } else {
-                    LOGGER.warn("Current user " + currentUser.getUserID()
-                        + " has not the permission to add user to group " + groupName);
+                    LOGGER.warn("Current user " + currentUser.getUserID() + " has not the permission to add user to group " + groupName);
                 }
             }
         }
@@ -354,17 +344,15 @@ public class MCRUserServlet extends MCRServlet {
      * changed user data from editor submission. Redirects to
      * show user data afterwards. 
      */
-    private void changePassword(HttpServletRequest req, HttpServletResponse res, MCRUser user, String uid)
-        throws Exception {
+    private void changePassword(HttpServletRequest req, HttpServletResponse res, MCRUser user, String uid) throws Exception {
         MCRUser currentUser = MCRUserManager.getCurrentUser();
         if (!checkUserIsNotNull(res, currentUser, null) || !checkUserIsNotNull(res, user, uid)) {
             return;
         }
-        boolean allowed = MCRAccessManager.checkPermission(MCRUser2Constants.USER_ADMIN_PERMISSION)
-            || currentUser.equals(user.getOwner()) || (currentUser.equals(user) && currentUser.hasNoOwner());
+        boolean allowed = MCRAccessManager.checkPermission(MCRUser2Constants.USER_ADMIN_PERMISSION) || currentUser.equals(user.getOwner())
+            || (currentUser.equals(user) && currentUser.hasNoOwner());
         if (!allowed) {
-            String msg = MCRTranslation.translate("component.user2.UserServlet.noAdminPermission");
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, msg);
+            res.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
@@ -375,8 +363,7 @@ public class MCRUserServlet extends MCRServlet {
         MCRUserManager.updatePasswordHashToSHA1(user, password);
         MCRUserManager.updateUser(user);
 
-        res.sendRedirect(res.encodeRedirectURL("MCRUserServlet?action=show&XSL.step=changedPassword&id="
-            + user.getUserID()));
+        res.sendRedirect(res.encodeRedirectURL("MCRUserServlet?action=show&XSL.step=changedPassword&id=" + user.getUserID()));
     }
 
     /**
@@ -386,11 +373,9 @@ public class MCRUserServlet extends MCRServlet {
      */
     private void deleteUser(HttpServletRequest req, HttpServletResponse res, MCRUser user) throws Exception {
         MCRUser currentUser = MCRUserManager.getCurrentUser();
-        boolean allowed = MCRAccessManager.checkPermission(MCRUser2Constants.USER_ADMIN_PERMISSION)
-            || currentUser.equals(user.getOwner());
+        boolean allowed = MCRAccessManager.checkPermission(MCRUser2Constants.USER_ADMIN_PERMISSION) || currentUser.equals(user.getOwner());
         if (!allowed) {
-            String msg = MCRTranslation.translate("component.user2.UserServlet.noAdminPermission");
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, msg);
+            res.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
@@ -417,11 +402,9 @@ public class MCRUserServlet extends MCRServlet {
     private void listUsers(HttpServletRequest req, HttpServletResponse res) throws Exception {
         MCRUser currentUser = MCRUserManager.getCurrentUser();
         boolean hasAdminPermission = MCRAccessManager.checkPermission(MCRUser2Constants.USER_ADMIN_PERMISSION);
-        boolean allowed = hasAdminPermission
-            || MCRAccessManager.checkPermission(MCRUser2Constants.USER_CREATE_PERMISSION);
+        boolean allowed = hasAdminPermission || MCRAccessManager.checkPermission(MCRUser2Constants.USER_CREATE_PERMISSION);
         if (!allowed) {
-            String msg = MCRTranslation.translate("component.user2.UserServlet.noCreatePermission");
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, msg);
+            res.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 

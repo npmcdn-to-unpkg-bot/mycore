@@ -28,9 +28,6 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
-import org.mycore.common.config.MCRConfigurationDir;
-
 /**
  * @author Thomas Scheffler (yagee)
  *
@@ -40,7 +37,7 @@ public class MCRCoreVersion {
 
     public static final String VERSION = prop.getProperty("mycore.version");
 
-    public static final int REVISION = getRevisionFromProperty();
+    public static final int REVISION = Integer.parseInt(prop.getProperty("revision.number"));
 
     public static final String COMPLETE = VERSION + " r" + REVISION;
 
@@ -74,16 +71,5 @@ public class MCRCoreVersion {
 
     public static void main(String arg[]) {
         System.out.printf("MyCoRe\tver: %s\trev: %d\n", VERSION, REVISION);
-        System.out.printf("Config directory: %s\n", MCRConfigurationDir.getConfigurationDirectory());
-    }
-
-    private static int getRevisionFromProperty() {
-        try {
-            return Integer.parseInt(prop.getProperty("revision.number"));
-        } catch (NumberFormatException e) {
-            Logger.getLogger(MCRCoreVersion.class).error(
-                "Error parsing revisionnumber: " + prop.getProperty("revision.number"));
-            return -1;
-        }
     }
 }

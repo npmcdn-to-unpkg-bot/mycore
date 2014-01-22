@@ -28,12 +28,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
+import java.util.Properties;
 
 import org.apache.log4j.Logger;
+import org.mycore.common.MCRConfiguration;
+import org.mycore.common.MCRConfigurationException;
 import org.mycore.common.MCRException;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.common.config.MCRConfigurationException;
 import org.mycore.services.fieldquery.MCRSearcherFactory;
 
 /**
@@ -117,7 +117,7 @@ public class MCREventManager {
 
         String prefix = "MCR.EventHandler.";
 
-        Map<String, String> props = config.getPropertiesMap(prefix);
+        Properties props = config.getProperties(prefix);
 
         if (props == null) {
             return;

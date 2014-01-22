@@ -1,7 +1,5 @@
 package org.mycore.services.urn;
-
 import static org.mycore.access.MCRAccessManager.PERMISSION_WRITE;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,9 +17,9 @@ import org.jdom2.filter.Filters;
 import org.jdom2.xpath.XPathExpression;
 import org.jdom2.xpath.XPathFactory;
 import org.mycore.access.MCRAccessManager;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRConstants;
 import org.mycore.common.MCRException;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.datamodel.common.MCRXMLMetadataManager;
 import org.mycore.datamodel.ifs.MCRDirectory;
 import org.mycore.datamodel.ifs.MCRFile;
@@ -278,7 +276,7 @@ public class MCRURNAdder {
                 list.add(new Attribute(attributeName, attributeValue));
             } else {
                 list.add(new Attribute(attributeName, attributeValue, namespace.equals("xml") ? Namespace.XML_NAMESPACE : MCRConstants
-                        .getStandardNamespace(namespace)));
+                    .getStandardNamespace(namespace)));
             }
         }
         return list;
@@ -336,10 +334,10 @@ public class MCRURNAdder {
              */
             try {
                 LOGGER.info("Assigning urn " + parentURN.toString() + " to " + derivate.getId().toString());
-                MCRURNManager.assignURN(parentURN.toString(), derivate.getId().toString(), null, null);
+                MCRURNManager.assignURN(parentURN.toString(), derivate.getId().toString(), " ", " ");
             } catch (Exception ex) {
                 LOGGER.error("Assigning base urn " + parentURN.toString() + parentURN.checksum() + " to derivate " + derivate.getId().toString() + " failed.",
-                        ex);
+                    ex);
                 return false;
             }
 
@@ -364,11 +362,12 @@ public class MCRURNAdder {
                 }
 
                 LOGGER.info("Assigning urn " + urnToSet[i] + urnToSet[i].checksum() + " to " + current.getLeftComponent()
-                        + current.getRightComponent().getName());
+                    + current.getRightComponent().getName());
                 /* save the urn in the database here */
                 try {
                     MCRURNManager.assignURN(urnToSet[i].toString() + urnToSet[i].checksum(), derivate.getId().toString(), current.getLeftComponent(), current
-                            .getRightComponent().getName());
+                        .getRightComponent()
+                        .getName());
                     /*
                      * updating the fileset element, with the current file and
                      * urn
@@ -377,7 +376,7 @@ public class MCRURNAdder {
                     fileMetadata.setUrn(urnToSet[i].toString() + String.valueOf(urnToSet[i].checksum()));
                 } catch (Exception ex) {
                     LOGGER.error("Assigning urn " + urnToSet[i] + urnToSet[i].checksum() + " to " + current.getLeftComponent()
-                            + current.getRightComponent().getName() + " failed.", ex);
+                        + current.getRightComponent().getName() + " failed.", ex);
                     handleError(derivate);
                     return false;
                 }

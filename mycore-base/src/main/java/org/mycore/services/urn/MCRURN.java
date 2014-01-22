@@ -295,6 +295,9 @@ public class MCRURN {
      * @see MCRURN#hasChecksumAttached()
      */
     public boolean attachChecksum() {
+        if (this.hasChecksumAttached()) {
+            return false;
+        }
         this.checksum = checksum();
         this.namespaceSpecificPart += String.valueOf(this.checksum);
         return true;

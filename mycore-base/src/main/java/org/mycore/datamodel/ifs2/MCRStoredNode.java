@@ -23,7 +23,6 @@
 
 package org.mycore.datamodel.ifs2;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
@@ -33,12 +32,11 @@ import java.util.TreeMap;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.Selectors;
 import org.apache.commons.vfs2.VFS;
-import org.apache.commons.vfs2.provider.local.LocalFile;
 import org.jdom2.Element;
 import org.jdom2.Namespace;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRConstants;
 import org.mycore.common.MCRSessionMgr;
-import org.mycore.common.config.MCRConfiguration;
 
 /**
  * A file or directory really stored by importing it from outside the system.
@@ -84,20 +82,6 @@ public abstract class MCRStoredNode extends MCRNode {
         data = new Element(type);
         data.setAttribute("name", name);
         parent.data.addContent(data);
-    }
-
-    /**
-     * Returns the local java.io.File representing this stored file or directory. Be careful
-     * to use this only for reading data, do never modify directly!
-     * 
-     * @return the file in the local filesystem representing this file
-     */
-    public File getLocalFile() throws IOException {
-        if (fo instanceof LocalFile) {
-            return new File(fo.getURL().getPath());
-        } else {
-            return null;
-        }
     }
 
     /**

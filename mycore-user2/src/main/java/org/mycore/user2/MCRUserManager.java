@@ -36,12 +36,12 @@ import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 import org.mycore.backend.hibernate.MCRHIBConnection;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.MCRSystemUserInformation;
 import org.mycore.common.MCRUserInformation;
 import org.mycore.common.MCRUtils;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.xml.MCRXMLFunctions;
 import org.mycore.datamodel.classifications2.MCRCategoryID;
 import org.mycore.datamodel.common.MCRISO8601Format;
@@ -373,9 +373,8 @@ public class MCRUserManager {
         MCRUserInformation userInformation = MCRSessionMgr.getCurrentSession().getUserInformation();
         if (userInformation instanceof MCRUser) {
             return (MCRUser) userInformation;
-        } else {
-            return new MCRTransientUser(userInformation);
         }
+        return null;
     }
 
     /**

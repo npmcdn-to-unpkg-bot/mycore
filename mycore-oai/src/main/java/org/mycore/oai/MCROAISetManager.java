@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -35,10 +35,10 @@ import org.apache.log4j.Logger;
 import org.hibernate.Transaction;
 import org.jdom2.Element;
 import org.mycore.backend.hibernate.MCRHIBConnection;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.MCRSystemUserInformation;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.xml.MCRURIResolver;
 import org.mycore.datamodel.classifications2.MCRCategoryDAOFactory;
 import org.mycore.oai.classmapping.MCRClassificationAndSetMapper;
@@ -142,7 +142,7 @@ public class MCROAISetManager {
                 } finally {
                     try {
                         transaction.commit();
-                    } catch (Exception exc) {
+                    } catch(Exception exc) {
                         LOGGER.error("Error occured while retrieving oai set list", exc);
                         transaction.rollback();
                     }
@@ -157,8 +157,9 @@ public class MCROAISetManager {
     protected void updateURIs() {
         this.setURIs = new ArrayList<String>();
         MCRConfiguration config = MCRConfiguration.instance();
-        Map<String, String> setProperties = config.getPropertiesMap(this.configPrefix + "Sets.");
-        for (String value : setProperties.values()) {
+        Properties setProperties = config.getProperties(this.configPrefix + "Sets.");
+        for (Object o : setProperties.values()) {
+            String value = (String) o;
             if (value.trim().length() > 0) {
                 this.setURIs.add(value);
             }

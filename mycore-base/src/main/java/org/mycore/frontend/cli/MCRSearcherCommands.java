@@ -20,8 +20,8 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.apache.log4j.Logger;
 import org.hibernate.CacheMode;
@@ -36,17 +36,15 @@ import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.mycore.backend.hibernate.MCRHIBConnection;
 import org.mycore.backend.hibernate.tables.MCRFSNODES;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRConstants;
 import org.mycore.common.MCRUtils;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.content.MCRContent;
 import org.mycore.common.xml.MCRXMLResource;
 import org.mycore.datamodel.common.MCRXMLMetadataManager;
 import org.mycore.datamodel.ifs.MCRFile;
 import org.mycore.datamodel.ifs.MCRFileMetadataManager;
 import org.mycore.datamodel.metadata.MCRObjectID;
-import org.mycore.frontend.cli.annotation.MCRCommand;
-import org.mycore.frontend.cli.annotation.MCRCommandGroup;
 import org.mycore.services.fieldquery.MCRFieldDef;
 import org.mycore.services.fieldquery.MCRSearcher;
 import org.mycore.services.fieldquery.MCRSearcherFactory;
@@ -56,12 +54,13 @@ import org.mycore.services.fieldquery.data2fields.MCRIndexEntry;
 import org.mycore.services.fieldquery.data2fields.MCRIndexEntryBuilder;
 import org.mycore.services.fieldquery.data2fields.MCRXSLBuilder;
 import org.xml.sax.SAXException;
+
 /**
  * provides static methods to manipulate MCRSearcher indexes.
  * 
  * @author Thomas Scheffler (yagee)
  */
-@MCRCommandGroup(name="MCRSearcher Commands")
+
 public class MCRSearcherCommands extends MCRAbstractCommands {
 
     private static Logger LOGGER = Logger.getLogger(MCRSearcherCommands.class);
@@ -74,9 +73,13 @@ public class MCRSearcherCommands extends MCRAbstractCommands {
 
     public MCRSearcherCommands() {
         super();
-
-
-
+        addCommand(new MCRCommand("rebuild metadata index", "org.mycore.frontend.cli.MCRSearcherCommands.repairMetaIndex",
+                "Repairs metadata index"));
+        addCommand(new MCRCommand("rebuild content index", "org.mycore.frontend.cli.MCRSearcherCommands.repairContentIndex",
+                "Repairs metadata index"));
+        addCommand(new MCRCommand("save searchfields of index {0} to stylesheet file {1}",
+                "org.mycore.frontend.cli.MCRSearcherCommands.saveXSL String String",
+                "Generates XSL file {0} that is used to index metadata."));
     }
 
     static class RepairIndex {
@@ -123,11 +126,11 @@ public class MCRSearcherCommands extends MCRAbstractCommands {
         }
 
         private List<String> getIndexes() {
-            Map<String, String> searcherProps = MCRConfiguration.instance().getPropertiesMap(SEARCHER_PROPERTY_START);
+            Properties searcherProps = MCRConfiguration.instance().getProperties(SEARCHER_PROPERTY_START);
             List<String> luceneIndexes = new ArrayList<String>(2);
-            for (Entry<String, String> property : searcherProps.entrySet()) {
-                if (property.getKey().endsWith(SEARCHER_CLASS_SUFFIX)) {
-                    luceneIndexes.add(property.getKey().split("\\.")[2]);
+            for (Entry<Object, Object> property : searcherProps.entrySet()) {
+                if (property.getKey().toString().endsWith(SEARCHER_CLASS_SUFFIX)) {
+                    luceneIndexes.add(property.getKey().toString().split("\\.")[2]);
                 }
             }
             LOGGER.info("Found MCRSearcher indexes: " + luceneIndexes);
@@ -244,8 +247,6 @@ public class MCRSearcherCommands extends MCRAbstractCommands {
      * @throws IOException
      * @throws JDOMException
      */
-    @MCRCommand(syntax="rebuild metadata index",
-    		help="Repairs the metadata index", order=10)
     public static void repairMetaIndex() throws IOException, JDOMException {
         new RepairIndex(new MetaIndexRepairMechanism()).repair();
     }
@@ -256,8 +257,6 @@ public class MCRSearcherCommands extends MCRAbstractCommands {
      * @throws IOException
      * @throws JDOMException
      */
-    @MCRCommand(syntax="rebuild content index",
-    		help="Repairs the content index", order=20)
     public static void repairContentIndex() throws IOException, JDOMException {
         new RepairIndex(new ContentIndexRepairMechanism()).repair();
     }
@@ -267,8 +266,6 @@ public class MCRSearcherCommands extends MCRAbstractCommands {
      * @param index
      * @param filename
      */
-    @MCRCommand(syntax="save searchfields of index {0} to stylesheet file {1}",
-    		help="Generates XSL file {0} that is used to index metadata.", order=30)
     public static void saveXSL(String index, String filename) {
         saveXSL(index, new File(filename));
     }

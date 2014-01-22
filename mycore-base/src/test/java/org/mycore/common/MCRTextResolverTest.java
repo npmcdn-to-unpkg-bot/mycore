@@ -1,12 +1,10 @@
 package org.mycore.common;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import java.util.Hashtable;
 
 import org.junit.Test;
-import org.mycore.common.MCRTextResolver.CircularDependencyExecption;
 import org.mycore.common.MCRTextResolver.ResolveDepth;
 import org.mycore.common.MCRTextResolver.Term;
 
@@ -45,6 +43,38 @@ public class MCRTextResolverTest extends MCRTestCase {
         // resolving variables in an other variable
         assertEquals("value1", resolver.resolve("{x_{num}[_{add}]}"));
         assertEquals("value2", resolver.resolve("{x_{num}[_{add2}]}"));
+
+        // hash table and list size tests
+        resolver.resolve("{f1}, {f3}, {notInTable}, {add}");
+        assertEquals(3, resolver.getResolvedVariables().size());
+        assertEquals(1, resolver.getUnresolvedVariables().size());
+        assertEquals(4, resolver.getUsedVariables().size());
+        assertEquals(7, resolver.getNotUsedVariables().size());
+        assertEquals(false, resolver.isCompletelyResolved());
+
+        resolver.resolveNext("{f3}, {f6}");
+        assertEquals(4, resolver.getResolvedVariables().size());
+        assertEquals(1, resolver.getUnresolvedVariables().size());
+        assertEquals(5, resolver.getUsedVariables().size());
+        assertEquals(6, resolver.getNotUsedVariables().size());
+        assertEquals(false, resolver.isCompletelyResolved());
+    }
+
+    @Test
+    public void properties() throws Exception {
+        MCRConfiguration.instance().set("prop1", "propValue1");
+        MCRConfiguration.instance().set("prop2", "propValue2");
+
+        Hashtable<String, String> variablesTable = new Hashtable<String, String>();
+        variablesTable.put("f1", "v1");
+        MCRTextResolver resolver = new MCRTextResolver(variablesTable);
+
+        assertEquals("propValue1", resolver.resolve("{prop1}"));
+        assertEquals("propValue1 - v1 - propValue2", resolver.resolve("{prop1} - {f1} - {prop2}"));
+        assertEquals("test: propValue1", resolver.resolve("[test: {prop1}]"));
+        assertEquals("", resolver.resolve("[test: {prop3}]"));
+        MCRTextResolver.setUseMCRProperties(false);
+        assertEquals("", resolver.resolve("[test: {prop1}]"));
     }
 
     @Test
@@ -65,7 +95,7 @@ public class MCRTextResolverTest extends MCRTestCase {
 
     @Test
     public void resolveDepth() throws Exception {
-        MCRTextResolver resolver = new MCRTextResolver();
+        MCRTextResolver resolver = new MCRTextResolver(ResolveDepth.Deep);
         resolver.addVariable("var1", "test1 & [{var2}]");
         resolver.addVariable("var2", "test2");
         assertEquals("test1 & test2", resolver.resolve("{var1}"));
@@ -76,13 +106,13 @@ public class MCRTextResolverTest extends MCRTestCase {
 
     @Test
     public void terms() throws Exception {
+        MCRTextResolver.registerTerm(UppercaseTerm.class);
         MCRTextResolver resolver = new MCRTextResolver();
-        resolver.registerTerm(UppercaseTerm.class);
         resolver.setRetainText(false);
         resolver.addVariable("var1", "test");
-        assertEquals("Das ist ein TEST.", resolver.resolve("Das ist ein${ {var1}}$."));
-        resolver.unregisterTerm(UppercaseTerm.class);
-        assertEquals("Das ist ein$$.", resolver.resolve("Das ist ein${ {var1}}$."));
+        assertEquals("Das ist ein TEST.", resolver.resolveNext("Das ist ein${ {var1}}$."));
+        MCRTextResolver.unregisterTerm(UppercaseTerm.class);
+        assertEquals("Das ist ein$$.", resolver.resolveNext("Das ist ein${ {var1}}$."));
     }
 
     @Test
@@ -93,24 +123,10 @@ public class MCRTextResolverTest extends MCRTestCase {
         assertEquals("Hello ", resolver.resolve("Hello {variable}"));
     }
 
-    @Test
-    public void circularDependency() {
-        MCRTextResolver resolver = new MCRTextResolver();
-        resolver.addVariable("a", "{b}");
-        resolver.addVariable("b", "{c}");
-        resolver.addVariable("c", "{a}");
-        try {
-            resolver.resolve("{a}");
-        } catch(CircularDependencyExecption cde) {
-            return;
-        }
-        assertFalse("No circular dependency occurred", true);
-    }
-
     private static class UppercaseTerm extends Term {
 
-        public UppercaseTerm(MCRTextResolver textResolver) {
-            super(textResolver);
+        public UppercaseTerm(MCRTextResolver resolver) {
+            resolver.super();
         }
 
         @Override

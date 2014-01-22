@@ -27,16 +27,15 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.jdom2.Element;
+import org.jdom2.filter.Filters;
+import org.jdom2.xpath.XPathExpression;
+import org.jdom2.xpath.XPathFactory;
 import org.mycore.common.events.MCREvent;
 import org.mycore.common.events.MCREventHandlerBase;
-import org.mycore.common.events.MCREventManager;
 import org.mycore.datamodel.classifications2.MCRCategLinkReference;
 import org.mycore.datamodel.classifications2.MCRCategLinkServiceFactory;
 import org.mycore.datamodel.classifications2.MCRCategoryID;
-import org.mycore.datamodel.metadata.MCRMetaLinkID;
-import org.mycore.datamodel.metadata.MCRMetadataManager;
 import org.mycore.datamodel.metadata.MCRObject;
-import org.mycore.datamodel.metadata.MCRObjectID;
 
 /**
  * Eventhandler for linking MODS_OBJECTTYPE document to MyCoRe classifications.
@@ -44,6 +43,8 @@ import org.mycore.datamodel.metadata.MCRObjectID;
  *
  */
 public class MCRMODSLinksEventHandler extends MCREventHandlerBase {
+
+    private static final XPathFactory XPATH_FACTORY = XPathFactory.instance();
 
     /* (non-Javadoc)
      * @see org.mycore.common.events.MCREventHandlerBase#handleObjectCreated(org.mycore.common.events.MCREvent, org.mycore.datamodel.metadata.MCRObject)
@@ -53,10 +54,11 @@ public class MCRMODSLinksEventHandler extends MCREventHandlerBase {
         if (!getSupportedObjectType().equals(obj.getId().getTypeId())) {
             return;
         }
-        MCRMODSWrapper modsWrapper = new MCRMODSWrapper(obj);
-        final List<Element> categoryNodes = modsWrapper.getElements(".//*[(@authority or @authorityURI) and not(ancestor::mods:relatedItem[@type='host'])]");
+        final Element metadata = obj.getMetadata().createXML();
         final HashSet<MCRCategoryID> categories = new HashSet<MCRCategoryID>();
-        for (Element node : categoryNodes) {
+        final XPathExpression<Element> categoryPath = XPATH_FACTORY.compile(".//*[@authority or @authorityURI]", Filters.element());
+        final List<Element> nodes = categoryPath.evaluate(metadata);
+        for (Element node : nodes) {
             final MCRCategoryID categoryID = MCRMODSClassificationSupport.getCategoryID(node);
             if (categoryID != null) {
                 categories.add(categoryID);
@@ -77,17 +79,7 @@ public class MCRMODSLinksEventHandler extends MCREventHandlerBase {
      */
     @Override
     protected void handleObjectUpdated(final MCREvent evt, final MCRObject obj) {
-        if (!getSupportedObjectType().equals(obj.getId().getTypeId())) {
-            return;
-        }
         handleObjectCreated(evt, obj);
-        //may have to reindex children, if they inherit any information
-        for (MCRMetaLinkID childLinkID : obj.getStructure().getChildren()) {
-            MCRObjectID childID = childLinkID.getXLinkHrefID();
-            MCREvent childEvent = new MCREvent(childID.getTypeId(), MCREvent.INDEX_EVENT);
-            childEvent.put("object", MCRMetadataManager.retrieve(childID));
-            MCREventManager.instance().handleEvent(childEvent);
-        }
     }
 
     /* (non-Javadoc)
@@ -95,7 +87,7 @@ public class MCRMODSLinksEventHandler extends MCREventHandlerBase {
      */
     @Override
     protected void handleObjectRepaired(final MCREvent evt, final MCRObject obj) {
-        handleObjectUpdated(evt, obj);
+        handleObjectCreated(evt, obj);
     }
 
 }

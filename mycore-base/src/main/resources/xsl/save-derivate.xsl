@@ -1,4 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- ============================================== -->
+<!-- $Revision: 1.1 $ $Date: 2008/07/23 05:25:54 $ -->
+<!-- ============================================== -->
 
 <xsl:stylesheet version="1.0"
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
@@ -59,7 +62,7 @@
       </xsl:for-each>
     </derivate>
     <service>
-	  <xsl:copy-of select="mycorederivate/service/*"/>
+	  <xsl:copy-of select="mycoreobject/service/*"/>
 	  <!-- include acl if available -->
 	  <xsl:variable name="acl" select="document(concat('access:action=all&amp;object=',mycorederivate/@ID))"/>
       <xsl:if test="$acl/*/*">

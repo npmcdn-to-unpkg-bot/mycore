@@ -4,7 +4,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 
 /**
  * @author "Huu Chi Vu"

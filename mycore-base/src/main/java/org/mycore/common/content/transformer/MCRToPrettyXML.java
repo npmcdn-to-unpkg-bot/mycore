@@ -61,9 +61,4 @@ public class MCRToPrettyXML extends MCRContentTransformer {
     protected String getDefaultExtension() {
         return "xml";
     }
-
-    @Override
-    public String getMimeType() throws Exception {
-        return "text/xml";
-    }
 }

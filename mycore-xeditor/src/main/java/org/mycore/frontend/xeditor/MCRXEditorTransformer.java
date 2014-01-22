@@ -24,33 +24,39 @@
 package org.mycore.frontend.xeditor;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.text.ParseException;
+import java.util.List;
 import java.util.Map;
+import java.util.Stack;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.apache.xalan.extensions.ExpressionContext;
 import org.apache.xpath.NodeSet;
-import org.jaxen.BaseXPath;
-import org.jaxen.JaxenException;
-import org.jaxen.dom.DocumentNavigator;
-import org.jaxen.expr.LocationPath;
-import org.jaxen.expr.NameStep;
+import org.apache.xpath.objects.XNodeSet;
+import org.apache.xpath.objects.XNodeSetForDOM;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.Namespace;
-import org.mycore.common.MCRException;
+import org.jdom2.filter.Filters;
+import org.jdom2.xpath.XPathExpression;
+import org.jdom2.xpath.XPathFactory;
 import org.mycore.common.content.MCRContent;
-import org.mycore.common.content.transformer.MCRContentTransformer;
-import org.mycore.common.content.transformer.MCRContentTransformerFactory;
-import org.mycore.common.content.transformer.MCRParameterizedTransformer;
-import org.mycore.common.xml.MCRURIResolver;
+import org.mycore.common.content.transformer.MCRXSL2XMLTransformer;
 import org.mycore.common.xsl.MCRParameterCollector;
-import org.mycore.frontend.xeditor.target.MCRSubselectTarget;
-import org.mycore.frontend.xeditor.validation.MCRValidationRule;
-import org.w3c.dom.Node;
+import org.mycore.frontend.xeditor.MCRXPathParser.MCRLocationStep;
+import org.mycore.services.i18n.MCRTranslation;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.traversal.NodeIterator;
 import org.xml.sax.SAXException;
 
 /**
@@ -58,11 +64,15 @@ import org.xml.sax.SAXException;
  */
 public class MCRXEditorTransformer {
 
+    private final static Logger LOGGER = Logger.getLogger(MCRXEditorTransformer.class);
+
     private MCREditorSession editorSession;
+
+    private MCRParameterCollector transformationParameters;
 
     private MCRBinding currentBinding;
 
-    private MCRParameterCollector transformationParameters;
+    private Stack<MCRRepeat> repeats = new Stack<MCRRepeat>();
 
     public MCRXEditorTransformer(MCREditorSession editorSession, MCRParameterCollector transformationParameters) {
         this.editorSession = editorSession;
@@ -70,22 +80,20 @@ public class MCRXEditorTransformer {
     }
 
     public MCRContent transform(MCRContent editorSource) throws IOException, JDOMException, SAXException {
-        editorSession.getValidator().clearRules();
+        editorSession.getValidator().removeValidationRules();
 
-        MCRContentTransformer transformer = MCRContentTransformerFactory.getTransformer("xeditor");
-        if (transformer instanceof MCRParameterizedTransformer) {
-            String key = MCRXEditorTransformerStore.storeTransformer(this);
-            transformationParameters.setParameter("XEditorTransformerKey", key);
-            MCRContent result = ((MCRParameterizedTransformer) transformer).transform(editorSource, transformationParameters);
-            editorSession.getValidator().clearValidationResults();
-            return result;
-        } else {
-            throw new MCRException("Xeditor needs parameterized MCRContentTransformer: " + transformer);
-        }
+        MCRXSL2XMLTransformer transformer = MCRXSL2XMLTransformer.getInstance("xsl/xeditor.xsl");
+        String key = MCRXEditorTransformerStore.storeTransformer(this);
+        transformationParameters.setParameter("XEditorTransformerKey", key);
+        return transformer.transform(editorSource, transformationParameters);
     }
 
     public static MCRXEditorTransformer getTransformer(String key) {
         return MCRXEditorTransformerStore.getAndRemoveTransformer(key);
+    }
+
+    public String getEditorSessionID() {
+        return editorSession.getID();
     }
 
     public void addNamespace(String prefix, String uri) {
@@ -93,62 +101,36 @@ public class MCRXEditorTransformer {
     }
 
     public void readSourceXML(String uri) throws JDOMException, IOException, SAXException, TransformerException {
-        editorSession.setEditedXML(uri);
+        uri = replaceParameters(uri);
+        if (!uri.contains("{"))
+            editorSession.setEditedXML(uri);
     }
 
-    public void setCancelURL(String cancelURL) {
-        editorSession.setCancelURL(cancelURL);
+    public void setCancelURL(String url) throws JDOMException, IOException, SAXException, TransformerException {
+        url = replaceParameters(url);
+        if (!url.contains("{"))
+            editorSession.setCancelURL(url);
     }
 
     public void setPostProcessorXSL(String stylesheet) {
-        editorSession.getPostProcessor().setStylesheet(stylesheet);
+        editorSession.setPostProcessorXSL(stylesheet);
     }
 
-    public String replaceParameters(String uri) {
-        return editorSession.replaceParameters(uri);
-    }
+    public void bind(String xPath, String defaultValue, String name) throws JDOMException, ParseException {
+        if (editorSession.getEditedXML() == null) {
+            String rPath = xPath.startsWith("/") ? xPath.substring(1) : xPath;
 
-    public void bind(String xPath, String initialValue, String name) throws JDOMException, JaxenException {
-        if (editorSession.getEditedXML() == null)
-            createEmptyDocumentFromXPath(xPath);
-
-        if (currentBinding == null)
-            currentBinding = editorSession.getRootBinding();
-
-        setCurrentBinding(new MCRBinding(xPath, initialValue, name, currentBinding));
-    }
-
-    private void setCurrentBinding(MCRBinding binding) {
-        this.currentBinding = binding;
-        editorSession.getValidator().setValidationMarker(currentBinding);
-    }
-
-    private void createEmptyDocumentFromXPath(String xPath) throws JaxenException, JDOMException {
-        Element root = createRootElement(xPath);
-        editorSession.setEditedXML(new Document(root));
-        editorSession.setBreakpoint("Starting with empty XML document");
-    }
-
-    private Element createRootElement(String xPath) throws JaxenException {
-        BaseXPath baseXPath = new BaseXPath(xPath, new DocumentNavigator());
-        LocationPath lp = (LocationPath) (baseXPath.getRootExpr());
-        NameStep nameStep = (NameStep) (lp.getSteps().get(0));
-        String prefix = nameStep.getPrefix();
-        Namespace ns = prefix.isEmpty() ? Namespace.NO_NAMESPACE : MCRUsedNamespaces.getNamespace(prefix);
-        return new Element(nameStep.getLocalName(), ns);
-    }
-
-    public void setValues(String value) {
-        currentBinding.setValues(value);
-    }
-
-    public void setDefault(String value) {
-        currentBinding.setDefault(value);
-        editorSession.getSubmission().markDefaultValue(currentBinding.getAbsoluteXPath(), value);
+            MCRLocationStep root = MCRXPathParser.parse(rPath).getLocationSteps().get(0);
+            editorSession.setEditedXML(new Document(new Element(root.getLocalName(), root.getNamespace())));
+        }
+        if (currentBinding == null) {
+            currentBinding = new MCRBinding(editorSession.getEditedXML());
+        }
+        currentBinding = new MCRBinding(xPath, defaultValue, name, currentBinding);
     }
 
     public void unbind() {
-        setCurrentBinding(currentBinding.getParent());
+        currentBinding = currentBinding.getParent();
     }
 
     public String getAbsoluteXPath() {
@@ -156,143 +138,138 @@ public class MCRXEditorTransformer {
     }
 
     public String getValue() {
+        markAsUsed();
+        return currentBinding.getValue();
+    }
+
+    public String getOutputValue() {
         return currentBinding.getValue();
     }
 
     public boolean hasValue(String value) {
-        editorSession.getSubmission().mark2checkResubmission(currentBinding);
+        markAsUsed();
         return currentBinding.hasValue(value);
     }
 
-    private boolean withinSelectElement = false;
-
-    public void toggleWithinSelectElement() {
-        withinSelectElement = !withinSelectElement;
+    private void markAsUsed() {
+        for (Object node : currentBinding.getBoundNodes()) {
+            editorSession.markAsTransformedToInputField(node);
+        }
     }
 
-    public boolean isWithinSelectElement() {
-        return withinSelectElement;
-    }
-
-    public String replaceXPaths(String text) {
-        return getXPathEvaluator().replaceXPaths(text, false);
-    }
-
-    public String replaceXPathOrI18n(String expression) {
-        return getXPathEvaluator().replaceXPathOrI18n(expression);
-    }
-
-    public String evaluateXPath(String xPathExpression) {
-        return getXPathEvaluator().evaluateXPath(xPathExpression);
-    }
-
-    public boolean test(String xPathExpression) {
-        return getXPathEvaluator().test(xPathExpression);
-    }
-
-    public MCRXPathEvaluator getXPathEvaluator() {
-        if (currentBinding != null)
-            return new MCRXPathEvaluator(currentBinding);
-        else
-            return new MCRXPathEvaluator(editorSession.getVariables(), null);
-    }
-
-    public String repeat(String xPath, int minRepeats, int maxRepeats) throws JDOMException, JaxenException {
-        MCRRepeatBinding repeat = new MCRRepeatBinding(xPath, currentBinding, minRepeats, maxRepeats);
-        setCurrentBinding(repeat);
-        return StringUtils.repeat("a ", repeat.getBoundNodes().size());
-    }
-
-    private MCRRepeatBinding getCurrentRepeat() {
-        MCRBinding binding = currentBinding;
-        while (!(binding instanceof MCRRepeatBinding))
-            binding = binding.getParent();
-        return (MCRRepeatBinding) binding;
+    public String repeat(String xPath, int minRepeats, int maxRepeats) throws JDOMException, ParseException {
+        MCRRepeat repeat = new MCRRepeat(currentBinding, xPath, minRepeats, maxRepeats);
+        repeats.push(repeat);
+        return StringUtils.repeat("a ", repeat.getNumRepeats());
     }
 
     public int getNumRepeats() {
-        return getCurrentRepeat().getBoundNodes().size();
+        return repeats.peek().getNumRepeats();
     }
 
     public int getMaxRepeats() {
-        return getCurrentRepeat().getMaxRepeats();
+        return repeats.peek().getMaxRepeats();
     }
 
     public int getRepeatPosition() {
-        return getCurrentRepeat().getRepeatPosition();
+        return repeats.peek().getRepeatPosition();
     }
 
-    public void bindRepeatPosition() throws JDOMException, JaxenException {
-        setCurrentBinding(getCurrentRepeat().bindRepeatPosition());
-        editorSession.getValidator().setValidationMarker(currentBinding);
+    public void bindRepeatPosition() throws JDOMException, ParseException {
+        currentBinding = repeats.peek().bindRepeatPosition();
     }
 
-    public String getSwapParameter(int posA, int posB) {
-        return getCurrentRepeat().getSwapParameter(posA, posB);
+    public void endRepeat() {
+        currentBinding = repeats.pop().getParentBinding();
     }
 
-    public void loadResource(String uri, String name) {
-        Element resource = MCRURIResolver.instance().resolve(uri);
-        editorSession.getVariables().put(name, resource);
+    public String getControlsParameter() throws UnsupportedEncodingException {
+        return repeats.peek().getControlsParameter();
     }
 
-    public void addValidationRule(Node ruleElement) {
-        editorSession.getValidator().addRule(currentBinding.getAbsoluteXPath(), ruleElement);
+    public void addValidationRule(NodeIterator attributes) {
+        editorSession.getValidator().addValidationRule(currentBinding.getAbsoluteXPath(), attributes);
     }
 
-    public boolean hasValidationError() {
-        return editorSession.getValidator().hasError(currentBinding);
+    public boolean validationFailed() {
+        return editorSession.getValidator().failed();
     }
 
-    public Node getFailedValidationRule() {
-        return editorSession.getValidator().getFailedRule(currentBinding).getRuleElement();
+    public boolean currentIsInvalid() {
+        return editorSession.getValidator().failed(currentBinding.getAbsoluteXPath());
     }
 
-    public NodeSet getFailedValidationRules() {
-        NodeSet nodeSet = new NodeSet();
-        for (MCRValidationRule failedRule : editorSession.getValidator().getFailedRules())
-            nodeSet.addNode(failedRule.getRuleElement());
-        return nodeSet;
+    private final static Pattern PATTERN_URI = Pattern.compile("\\{\\$(.+)\\}");
+
+    public String replaceParameters(String uri) {
+        Matcher m = PATTERN_URI.matcher(uri);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            String token = m.group(1);
+            String value = transformationParameters.getParameter(token, null);
+            m.appendReplacement(sb, value == null ? m.group().replace("$", "\\$") : value);
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
-    public String getSubselectParam(String href) {
-        return currentBinding.getAbsoluteXPath() + ":" + MCRSubselectTarget.encode(href);
+    private final static Pattern PATTERN_XPATH = Pattern.compile("\\{([^\\}]+)\\}");
+
+    public String replaceXPaths(String text) {
+        Matcher m = PATTERN_XPATH.matcher(text);
+        StringBuffer sb = new StringBuffer();
+        while (m.find())
+            m.appendReplacement(sb, replaceXPathOrI18n(m.group(1)));
+        m.appendTail(sb);
+        return sb.toString();
     }
 
-    public NodeSet getAdditionalParameters() throws ParserConfigurationException, TransformerException {
-        org.w3c.dom.Document dom = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
-        NodeSet nodeSet = new NodeSet();
+    public String replaceXPathOrI18n(String expression) {
+        if (expression.startsWith("i18n:")) {
+            String key = expression.substring(5);
+            int pos = key.indexOf(",");
+            if (pos != -1) {
+                String xPath = key.substring(pos + 1);
+                String value = evaluateXPath(xPath);
+                key = key.substring(0, pos);
+                return MCRTranslation.translate(key, value);
+            } else
+                return MCRTranslation.translate(key);
+        } else
+            return evaluateXPath(expression);
+    }
 
+    public String evaluateXPath(String xPathExpression) {
+        xPathExpression = "string(" + xPathExpression + ")";
+        try {
+            Map<String, Object> xPathVariables = currentBinding.buildXPathVariables();
+            xPathVariables.putAll(transformationParameters.getParameterMap());
+            XPathFactory factory = XPathFactory.instance();
+            List<Namespace> namespaces = MCRUsedNamespaces.getNamespaces();
+            XPathExpression<Object> xPath = factory.compile(xPathExpression, Filters.fpassthrough(), xPathVariables, namespaces);
+            return xPath.evaluateFirst(currentBinding.getBoundNodes()).toString();
+        } catch (Exception ex) {
+            LOGGER.warn("unable to evaluate XPath: " + xPathExpression);
+            LOGGER.debug(ex);
+            return "";
+        }
+    }
+
+    public XNodeSet getRequestParameters(ExpressionContext context) throws ParserConfigurationException, TransformerException {
+        DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        org.w3c.dom.Document doc = builder.newDocument();
+        NodeSet ns = new NodeSet();
         Map<String, String[]> parameters = editorSession.getRequestParameters();
-        for (String name : parameters.keySet())
-            for (String value : parameters.get(name))
-                if ((value != null) && !value.isEmpty())
-                    nodeSet.addNode(buildAdditionalParameterElement(dom, name, value));
-
-        String xPaths2CheckResubmission = editorSession.getSubmission().getXPaths2CheckResubmission();
-        if (!xPaths2CheckResubmission.isEmpty())
-            nodeSet.addNode(buildAdditionalParameterElement(dom, MCREditorSubmission.PREFIX_CHECK_RESUBMISSION, xPaths2CheckResubmission));
-
-        Map<String, String> defaultValues = editorSession.getSubmission().getDefaultValues();
-        for (String xPath : defaultValues.keySet())
-            nodeSet.addNode(buildAdditionalParameterElement(dom, MCREditorSubmission.PREFIX_DEFAULT_VALUE + xPath,
-                    defaultValues.get(xPath)));
-
-        editorSession.setBreakpoint("After transformation to HTML");
-        nodeSet.addNode(buildAdditionalParameterElement(dom, MCREditorSessionStore.XEDITOR_SESSION_PARAM,
-                editorSession.getCombinedSessionStepID()));
-
-        return nodeSet;
-    }
-
-    private org.w3c.dom.Element buildAdditionalParameterElement(org.w3c.dom.Document doc, String name, String value) {
-        org.w3c.dom.Element element = doc.createElement("param");
-        element.setAttribute("name", name);
-        element.setTextContent(value);
-        return element;
-    }
-
-    public void addCleanupRule(String xPath, String relevantIf) {
-        editorSession.getXMLCleaner().addRule(xPath, relevantIf);
+        for (String name : parameters.keySet()) {
+            for (String value : parameters.get(name)) {
+                if ((value != null) && !value.isEmpty()) {
+                    org.w3c.dom.Element element = doc.createElement("param");
+                    element.setAttribute("name", name);
+                    element.setTextContent(value);
+                    ns.addNode(element);
+                }
+            }
+        }
+        return new XNodeSetForDOM((NodeList) ns, context.getXPathContext());
     }
 }

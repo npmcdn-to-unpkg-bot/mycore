@@ -30,6 +30,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.text.MessageFormat;
@@ -48,25 +49,21 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import javax.xml.transform.TransformerException;
 
 import org.apache.log4j.Logger;
 import org.jdom2.DocType;
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.common.config.MCRConfigurationDirSetup;
 import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.common.xml.MCRLayoutService;
+import org.mycore.common.xml.MCRURIResolver;
 import org.mycore.common.xml.MCRXMLFunctions;
-import org.mycore.common.xsl.MCRErrorListener;
 import org.mycore.datamodel.common.MCRActiveLinkException;
 import org.mycore.services.i18n.MCRTranslation;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
 /**
  * This is the superclass of all MyCoRe servlets. It provides helper methods for
@@ -96,8 +93,7 @@ public class MCRServlet extends HttpServlet {
 
     private static String SERVLET_URL;
 
-    private static final boolean ENABLE_BROWSER_CACHE = MCRConfiguration.instance().getBoolean(
-        "MCR.Servlet.BrowserCache.enable", false);
+    private static final boolean ENABLE_BROWSER_CACHE = MCRConfiguration.instance().getBoolean("MCR.Servlet.BrowserCache.enable", false);
 
     private static MCRLayoutService LAYOUT_SERVICE;
 
@@ -156,6 +152,7 @@ public class MCRServlet extends HttpServlet {
         String baseURLofRequest = requestURL.substring(0, pos) + contextPath;
 
         prepareBaseURLs(baseURLofRequest);
+        MCRURIResolver.init(context, getBaseURL());
     }
 
     private static synchronized void prepareBaseURLs(String baseURL) {
@@ -180,31 +177,7 @@ public class MCRServlet extends HttpServlet {
     // i.e. GET- and POST requests are handled by one method only.
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        try {
-            doGetPost(req, res);
-        } catch (SAXException | TransformerException e) {
-            throwIOException(e);
-        }
-    }
-
-    private void throwIOException(Exception e) throws IOException {
-        if (e instanceof IOException) {
-            throw (IOException) e;
-        }
-        if (e instanceof TransformerException) {
-            TransformerException te = MCRErrorListener.unwrapException((TransformerException) e);
-            String myMessageAndLocation = MCRErrorListener.getMyMessageAndLocation(te);
-            throw new IOException("Error while XSL Transformation: " + myMessageAndLocation, e);
-        }
-        if (e instanceof SAXParseException) {
-            SAXParseException spe = (SAXParseException) e;
-            String id = spe.getSystemId() != null ? spe.getSystemId() : spe.getPublicId();
-            int line = spe.getLineNumber();
-            int column = spe.getColumnNumber();
-            String msg = MessageFormat.format("Error on {0}:{1} while parsing {2}", line, column, id);
-            throw new IOException(msg, e);
-        }
-        throw new IOException(e);
+        doGetPost(req, res);
     }
 
     protected void doGet(MCRServletJob job) throws Exception {
@@ -213,11 +186,7 @@ public class MCRServlet extends HttpServlet {
 
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        try {
-            doGetPost(req, res);
-        } catch (SAXException | TransformerException e) {
-            throwIOException(e);
-        }
+        doGetPost(req, res);
     }
 
     protected void doPost(MCRServletJob job) throws Exception {
@@ -238,8 +207,7 @@ public class MCRServlet extends HttpServlet {
                 //check if request IP equals last known IP
                 String newip = getRemoteAddr(req);
                 if (!lastIP.equals(newip) && !newip.equals(BASE_HOST_IP)) {
-                    LOGGER.warn("Session steal attempt from IP " + newip + ", previous IP was " + lastIP
-                        + ". Session: " + session.toString());
+                    LOGGER.warn("Session steal attempt from IP " + newip + ", previous IP was " + lastIP + ". Session: " + session.toString());
                     MCRSessionMgr.releaseCurrentSession();
                     session = MCRSessionMgr.getCurrentSession();
                     session.setCurrentIP(newip);
@@ -289,8 +257,7 @@ public class MCRServlet extends HttpServlet {
      * @exception ServletException
      *                for errors from the servlet engine.
      */
-    private void doGetPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException,
-        SAXException, TransformerException {
+    private void doGetPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         if (MCRConfiguration.instance() == null) {
             // removes NullPointerException below, if somehow Servlet is not yet
             // intialized
@@ -308,8 +275,7 @@ public class MCRServlet extends HttpServlet {
         }
 
         if ("true".equals(req.getParameter("reload.properties"))) {
-            MCRConfigurationDirSetup setup = new MCRConfigurationDirSetup();
-            setup.startUp(getServletContext());
+            MCRConfiguration.instance().reload(true);
         }
 
         if (BASE_URL == null) {
@@ -326,7 +292,7 @@ public class MCRServlet extends HttpServlet {
             // first phase completed, start rendering phase
             processRenderingPhase(job, thinkException);
         } catch (Exception ex) {
-            LOGGER.error("Exception while in rendering phase: " + ex.getMessage());
+            LOGGER.error("Exception while in rendering phase.", ex);
             if (getProperty(req, INITIAL_SERVLET_NAME_KEY).equals(getServletName())) {
                 // current Servlet not called via RequestDispatcher
                 session.rollbackTransaction();
@@ -335,10 +301,6 @@ public class MCRServlet extends HttpServlet {
                 throw (ServletException) ex;
             } else if (ex instanceof IOException) {
                 throw (IOException) ex;
-            } else if (ex instanceof SAXException) {
-                throw (SAXException) ex;
-            } else if (ex instanceof TransformerException) {
-                throw (TransformerException) ex;
             } else if (ex instanceof RuntimeException) {
                 throw (RuntimeException) ex;
             } else {
@@ -509,10 +471,9 @@ public class MCRServlet extends HttpServlet {
      *             instead or throw Exception
      */
     @Deprecated()
-    protected void generateErrorPage(HttpServletRequest request, HttpServletResponse response, int error, String msg,
-        Exception ex, boolean xmlstyle) throws IOException, TransformerException, SAXException {
-        LOGGER.error(getClass().getName() + ": Error " + error + " occured. The following message was given: " + msg,
-            ex);
+    protected void generateErrorPage(HttpServletRequest request, HttpServletResponse response, int error, String msg, Exception ex, boolean xmlstyle)
+            throws IOException {
+        LOGGER.error(getClass().getName() + ": Error " + error + " occured. The following message was given: " + msg, ex);
 
         String rootname = "mcr_error";
         String style = getProperty(request, "XSL.Style");
@@ -551,11 +512,9 @@ public class MCRServlet extends HttpServlet {
             return;
         } else {
             if (request.getAttribute(requestAttr) != null) {
-                LOGGER.warn("Could not send error page. Generating error page failed. The original message:\n"
-                    + request.getAttribute(requestAttr));
+                LOGGER.warn("Could not send error page. Generating error page failed. The original message:\n" + request.getAttribute(requestAttr));
             } else {
-                LOGGER.warn("Could not send error page. Response allready commited. The following message was given:\n"
-                    + msg);
+                LOGGER.warn("Could not send error page. Response allready commited. The following message was given:\n" + msg);
             }
         }
     }
@@ -595,19 +554,17 @@ public class MCRServlet extends HttpServlet {
         return redirectURL.toString();
     }
 
-    protected void generateActiveLinkErrorpage(HttpServletRequest request, HttpServletResponse response, String msg,
-        MCRActiveLinkException activeLinks) throws IOException, TransformerException, SAXException {
+    protected void generateActiveLinkErrorpage(HttpServletRequest request, HttpServletResponse response, String msg, MCRActiveLinkException activeLinks)
+            throws IOException {
         StringBuilder msgBuf = new StringBuilder(msg);
-        msgBuf
-            .append("\nThere are links active preventing the commit of work, see error message for details. The following links where affected:");
+        msgBuf.append("\nThere are links active preventing the commit of work, see error message for details. The following links where affected:");
         Map<String, Collection<String>> links = activeLinks.getActiveLinks();
         for (Map.Entry<String, Collection<String>> entry : links.entrySet()) {
             for (String source : entry.getValue()) {
                 msgBuf.append('\n').append(source).append("==>").append(entry.getKey());
             }
         }
-        generateErrorPage(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msgBuf.toString(),
-            activeLinks, false);
+        generateErrorPage(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msgBuf.toString(), activeLinks, false);
     }
 
     /**
@@ -619,9 +576,8 @@ public class MCRServlet extends HttpServlet {
     protected long getLastModified(HttpServletRequest request) {
         if (ENABLE_BROWSER_CACHE) {
             // we can cache every (local) request
-            long lastModified = MCRSessionMgr.getCurrentSession().getLoginTime() > MCRConfiguration.instance()
-                .getSystemLastModified() ? MCRSessionMgr.getCurrentSession().getLoginTime() : MCRConfiguration
-                .instance().getSystemLastModified();
+            long lastModified = MCRSessionMgr.getCurrentSession().getLoginTime() > MCRConfiguration.instance().getSystemLastModified() ? MCRSessionMgr
+                    .getCurrentSession().getLoginTime() : MCRConfiguration.instance().getSystemLastModified();
             LOGGER.info("LastModified: " + lastModified);
             return lastModified;
         }
@@ -727,8 +683,8 @@ public class MCRServlet extends HttpServlet {
                 // parameter is not empty -> store
                 if (!request.getParameter(name).trim().equals("")) {
                     mcrSession.put(key, request.getParameter(name));
-                    LOGGER.debug("Found HTTP-Req.-Parameter " + name + "=" + request.getParameter(name)
-                        + " that should be saved in session, safed " + key + "=" + request.getParameter(name));
+                    LOGGER.debug("Found HTTP-Req.-Parameter " + name + "=" + request.getParameter(name) + " that should be saved in session, safed " + key
+                            + "=" + request.getParameter(name));
                 }
                 // paramter is empty -> do not store and if contained in
                 // session, remove from it
@@ -746,8 +702,8 @@ public class MCRServlet extends HttpServlet {
                 // attribute is not empty -> store
                 if (!request.getAttribute(name).toString().trim().equals("")) {
                     mcrSession.put(key, request.getAttribute(name));
-                    LOGGER.debug("Found HTTP-Req.-Attribute " + name + "=" + request.getParameter(name)
-                        + " that should be saved in session, safed " + key + "=" + request.getParameter(name));
+                    LOGGER.debug("Found HTTP-Req.-Attribute " + name + "=" + request.getParameter(name) + " that should be saved in session, safed " + key
+                            + "=" + request.getParameter(name));
                 }
                 // attribute is empty -> do not store and if contained in
                 // session, remove from it
@@ -793,8 +749,7 @@ public class MCRServlet extends HttpServlet {
         return MCRTranslation.translate(key, args);
     }
 
-    protected static void writeCacheHeaders(HttpServletResponse response, int CACHE_TIME, long lastModified,
-        boolean useExpire) {
+    protected void writeCacheHeaders(HttpServletResponse response, int CACHE_TIME, long lastModified, boolean useExpire) {
         response.setHeader("Cache-Control", "public, max-age=" + CACHE_TIME);
         response.setDateHeader("Last-Modified", lastModified);
         if (useExpire) {

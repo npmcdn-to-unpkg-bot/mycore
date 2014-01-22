@@ -7,8 +7,6 @@ import static org.mycore.solr.MCRSolrConstants.CONFIG_PREFIX;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -22,7 +20,7 @@ import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.client.solrj.response.UpdateResponse;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.content.MCRContent;
 import org.mycore.common.events.MCRShutdownHandler;
 import org.mycore.common.events.MCRShutdownHandler.Closeable;
@@ -34,7 +32,6 @@ import org.mycore.solr.index.handlers.MCRSolrOptimizeIndexHandler;
 import org.mycore.solr.index.handlers.stream.MCRSolrFilesIndexHandler;
 import org.mycore.solr.index.statistic.MCRSolrIndexStatistic;
 import org.mycore.solr.index.statistic.MCRSolrIndexStatisticCollector;
-import org.mycore.solr.search.MCRSolrSearchUtils;
 import org.mycore.util.concurrent.MCRListeningPriorityExecutorService;
 
 import com.google.common.util.concurrent.FutureCallback;
@@ -62,22 +59,22 @@ public class MCRSolrIndexer {
     static {
         int poolSize = MCRConfiguration.instance().getInt(CONFIG_PREFIX + "Indexer.ThreadCount", 4);
         final MCRListeningPriorityExecutorService executorService = new MCRListeningPriorityExecutorService(new ThreadPoolExecutor(
-                poolSize, poolSize, 0L, TimeUnit.MILLISECONDS, new PriorityBlockingQueue<Runnable>()));
+            poolSize, poolSize, 0L, TimeUnit.MILLISECONDS, new PriorityBlockingQueue<Runnable>()));
         Runnable onShutdown = new Runnable() {
 
             @Override
             public void run() {
                 executorService.shutdown();
                 String documentStats = MessageFormat.format("Solr documents: {0}, each: {1} ms.",
-                        MCRSolrIndexStatisticCollector.documents.getDocuments(), MCRSolrIndexStatisticCollector.documents.reset());
+                    MCRSolrIndexStatisticCollector.documents.getDocuments(), MCRSolrIndexStatisticCollector.documents.reset());
                 String metadataStats = MessageFormat.format("XML documents: {0}, each: {1} ms.",
-                        MCRSolrIndexStatisticCollector.xml.getDocuments(), MCRSolrIndexStatisticCollector.xml.reset());
+                    MCRSolrIndexStatisticCollector.xml.getDocuments(), MCRSolrIndexStatisticCollector.xml.reset());
                 String fileStats = MessageFormat.format("File transfers: {0}, each: {1} ms.",
-                        MCRSolrIndexStatisticCollector.fileTransfer.getDocuments(), MCRSolrIndexStatisticCollector.fileTransfer.reset());
+                    MCRSolrIndexStatisticCollector.fileTransfer.getDocuments(), MCRSolrIndexStatisticCollector.fileTransfer.reset());
                 String operationsStats = MessageFormat.format("Other index operations: {0}, each: {1} ms.",
-                        MCRSolrIndexStatisticCollector.operations.getDocuments(), MCRSolrIndexStatisticCollector.operations.reset());
+                    MCRSolrIndexStatisticCollector.operations.getDocuments(), MCRSolrIndexStatisticCollector.operations.reset());
                 String msg = MessageFormat.format("\nFinal statistics:\n{0}\n{1}\n{2}\n{3}", documentStats, metadataStats, fileStats,
-                        operationsStats);
+                    operationsStats);
                 LOGGER.info(msg);
                 try {
                     MCRSolrServerFactory.getSolrServer().commit();
@@ -298,62 +295,6 @@ public class MCRSolrIndexer {
             submitIndexHandler(indexHandler);
         } catch (Exception ex) {
             LOGGER.error("Could not optimize solr index", ex);
-        }
-    }
-
-    /**
-     * Synchronizes the solr server with the database. As a result the
-     * solr server contains the same documents as the database. All solr
-     * zombie documents will be removed, and all not indexed mycore
-     * objects will be indexed.
-     * 
-     * @throws IOException
-     * @throws SolrServerException
-     */
-    public static void synchronizeMetadataIndex() throws IOException, SolrServerException {
-        Collection<String> objectTypes = MCRXMLMetadataManager.instance().getObjectTypes();
-        for (String objectType : objectTypes) {
-            synchronizeMetadataIndex(objectType);
-        }
-    }
-
-    /**
-     * Synchronizes the solr server with the mycore store for a given object type.
-     * As a result the solr server contains the same documents as the store.
-     * All solr zombie documents will be removed, and all not indexed mycore
-     * objects will be indexed.
-     * 
-     * @throws IOException
-     * @throws SolrServerException
-     */
-    public static void synchronizeMetadataIndex(String objectType) throws IOException, SolrServerException {
-        LOGGER.info("synchronize " + objectType);
-        // get ids from store
-        LOGGER.info("fetching mycore store...");
-        List<String> storeList = MCRXMLMetadataManager.instance().listIDsOfType(objectType);
-        LOGGER.info("there are " + storeList.size() + " mycore objects");
-        // get ids from solr
-        LOGGER.info("fetching solr...");
-        SolrServer solrServer = MCRSolrServerFactory.getSolrServer();
-        List<String> solrList = MCRSolrSearchUtils.listIDs(solrServer, "objectType:" + objectType);
-        LOGGER.info("there are " + solrList.size() + " solr objects");
-
-        // documents to remove
-        List<String> toRemove = new ArrayList<>(1000);
-        for (String id : solrList) {
-            if (!storeList.contains(id)) {
-                toRemove.add(id);
-            }
-        }
-        if (!toRemove.isEmpty()) {
-            LOGGER.info("remove " + toRemove.size() + " zombie objects from solr");
-            solrServer.deleteById(toRemove, 5000);
-        }
-        // documents to add
-        storeList.removeAll(solrList);
-        if (!storeList.isEmpty()) {
-            LOGGER.info("index " + storeList.size() + " mycore objects");
-            rebuildMetadataIndex(storeList);
         }
     }
 

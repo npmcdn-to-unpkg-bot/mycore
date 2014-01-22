@@ -23,26 +23,17 @@
 
 package org.mycore.frontend.xeditor.target;
 
-import javax.servlet.ServletContext;
-
-import org.mycore.frontend.servlets.MCRServletJob;
 import org.mycore.frontend.xeditor.MCRBinding;
-import org.mycore.frontend.xeditor.MCREditorSession;
 
 /**
  * @author Frank L\u00FCtzenkirchen
  */
-public class MCRRemoveTarget implements MCREditorTarget {
+public class MCRRemoveTarget extends MCRControlTarget {
 
-    public void handleSubmission(ServletContext context, MCRServletJob job, MCREditorSession session, String xPath) throws Exception {
-        session.getSubmission().setSubmittedValues(job.getRequest().getParameterMap());
-
-        MCRBinding binding = new MCRBinding(xPath, false, session.getRootBinding());
-        binding.removeBoundNode(0);
-        binding.detach();
-        
-        session.setBreakpoint("After handling target remove " + xPath);
-
-        job.getResponse().sendRedirect(session.getRedirectURL());
+    @Override
+    protected void handleControl(MCRBinding baseBinding, String repeatXPath, String pos) throws Exception {
+        String nodeXPath = repeatXPath + "[" + pos + "]";
+        MCRBinding nodeBinding = new MCRBinding(nodeXPath, baseBinding);
+        nodeBinding.detachBoundNode();
     }
 }

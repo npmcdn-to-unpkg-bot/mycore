@@ -12,7 +12,7 @@
   <xsl:param name="classeditor.showId" select="false()" />
 
   <!-- Variables -->
-  <xsl:variable name="classeditor.dojoVersion" select="'1.9.1'" />
+  <xsl:variable name="classeditor.dojoVersion" select="'1.8.3'" />
 
   <xsl:variable name="classeditor.resourceURL" select="concat($WebApplicationBaseURL, 'rsc/classifications/')" />
   <xsl:variable name="classeditor.webURL" select="concat($WebApplicationBaseURL, 'modules/classeditor')"/>
@@ -49,7 +49,6 @@
         async: true,
         isDebug: false,
         parseOnLoad: true,
-        locale: 'en-us', /*we have our own i18n system, but dojo needs a default here*/
         packages: [
           {name: "mycore", location: classeditor.settings.jsURL + "/mycore"}
         ],
@@ -61,10 +60,10 @@
   <xsl:template name="classeditor.includeDojoJS">
     <xsl:choose>
       <xsl:when test="$classeditor.debug = true()">
-        <script type="text/javascript" src="{$classeditor.webURL}/dojo/dojo.js.uncompressed.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/dojo/{$classeditor.dojoVersion}/dojo/dojo.js.uncompressed.js"></script>  
       </xsl:when>
       <xsl:otherwise>
-       <script type="text/javascript" src="{$classeditor.webURL}/dojo/dojo.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/dojo/{$classeditor.dojoVersion}/dojo/dojo.js"></script>  
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
@@ -72,9 +71,11 @@
   <xsl:template name="classeditor.includeJS">
     <xsl:choose>
       <xsl:when test="$classeditor.debug = true()">
+<!--    <script type="text/javascript" src="{$classeditor.jsURL}/classificationEditor.js"></script> -->
         <script type="text/javascript" src="{$classeditor.jsURL}/lib/mycore-dojo.js.uncompressed.js"></script>
       </xsl:when>
       <xsl:otherwise>
+<!--    <script type="text/javascript" src="{$classeditor.jsURL}/classificationEditor.min.js"></script> -->
         <script type="text/javascript" src="{$classeditor.jsURL}/lib/mycore-dojo.js"></script>
       </xsl:otherwise>
     </xsl:choose>

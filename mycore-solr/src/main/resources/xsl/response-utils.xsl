@@ -6,61 +6,21 @@
   <xsl:variable name="loginURL"
     select="concat( $ServletsBaseURL, 'MCRLoginServlet',$HttpSession,'?url=', encoder:encode( string( $RequestURL ) ) )" />
   <xsl:key name="derivate" match="/response/response[@subresult='derivate']/result/doc" use="str[@name='returnId']" />
-  <xsl:key name="files-by-object"
-    match="/response/response[@subresult='unmerged']/result/doc|/response/lst[@name='grouped']/lst[@name='returnId']/arr[@name='groups']/lst/result/doc[str[@name='objectType']='data_file']"
-    use="str[@name='returnId']" />
-  <xsl:key name="files-by-derivate"
-    match="/response/response[@subresult='unmerged']/result/doc|/response/lst[@name='grouped']/lst[@name='returnId']/arr[@name='groups']/lst/result/doc[str[@name='objectType']='data_file']"
-    use="str[@name='derivateID']" />
+  <xsl:key name="files-by-object" match="/response/response[@subresult='unmerged']/result/doc" use="str[@name='returnId']" />
+  <xsl:key name="files-by-derivate" match="/response/response[@subresult='unmerged']/result/doc" use="str[@name='derivateID']" />
   <xsl:variable name="params" select="/response/lst[@name='responseHeader']/lst[@name='params']" />
   <xsl:variable name="result" select="/response/result[@name='response']" />
-  <xsl:variable name="groups" select="/response/lst[@name='grouped']/lst[@name='returnId']/arr[@name='groups']" />
-  <xsl:variable name="hits">
-    <xsl:choose>
-      <xsl:when test="$result/@numFound">
-        <xsl:value-of select="number($result/@numFound)" />
-      </xsl:when>
-      <xsl:when test="/response/lst[@name='grouped']/lst[@name='returnId']/int[@name='ngroups']">
-        <xsl:value-of select="number(/response/lst[@name='grouped']/lst[@name='returnId']/int[@name='ngroups'])" />
-      </xsl:when>
-      <xsl:when test="/response/lst[@name='grouped']/lst[@name='returnId']/int[@name='matches']">
-        <xsl:value-of select="number(/response/lst[@name='grouped']/lst[@name='returnId']/int[@name='matches'])" />
-      </xsl:when>
-      <xsl:when test="$groups">
-        <xsl:value-of select="count($groups/lst)" />
-      </xsl:when>
-      <xsl:otherwise>
-        <xsl:value-of select="0" />
-      </xsl:otherwise>
-    </xsl:choose>
-  </xsl:variable>
-  <xsl:variable name="start">
-    <xsl:choose>
-      <xsl:when test="$result/@start">
-        <xsl:value-of select="number($result/@start)" />
-      </xsl:when>
-      <xsl:when test="xalan:nodeset($params)/str[@name='start']">
-        <xsl:value-of select="number(xalan:nodeset($params)/str[@name='start'])" />
-      </xsl:when>
-      <xsl:otherwise>
-        <xsl:value-of select="0" />
-      </xsl:otherwise>
-    </xsl:choose>
-  </xsl:variable>
+  <xsl:variable name="hits" select="number($result/@numFound)" />
+  <xsl:variable name="start" select="number($result/@start)" />
   <xsl:variable name="rowTemp">
-    <xsl:if test="xalan:nodeset($params)/arr[@name='rows']">
-      <xsl:message terminate="yes">
-        <xsl:value-of select="'Too many rows parameter!'" />
-      </xsl:message>
-    </xsl:if>
     <xsl:choose>
       <xsl:when test="xalan:nodeset($params)/str[@name='rows']">
         <xsl:value-of select="number(xalan:nodeset($params)/str[@name='rows'])" />
       </xsl:when>
       <xsl:otherwise>
-        <xsl:variable name="docCount" select="count($result/doc|$groups/lst)" />
+        <xsl:variable name="docCount" select="count($result/doc)" />
         <xsl:choose>
-          <xsl:when test="not($result/@numFound) or $result/@numFound &gt; $docCount">
+          <xsl:when test="$result/@numFound &gt; $docCount">
             <xsl:value-of select="$docCount" />
           </xsl:when>
           <xsl:otherwise>
@@ -118,8 +78,8 @@
     <xsl:variable name="prev" select="'«'" />
     <xsl:variable name="next" select="'»'" />
 
-    <div class="text-center">
-      <ul class="pagination">
+    <div class="pagination pagination-centered">
+      <ul>
         <li>
           <xsl:choose>
             <xsl:when test="$currentpage = 1">
@@ -334,7 +294,26 @@
     </xsl:choose>
   </xsl:template>
 
+  <xsl:template match="doc" mode="iview">
+    <xsl:variable name="mcrid" select="@id" />
+    <xsl:variable name="derivates" select="key('derivate', $mcrid)" />
+    <xsl:for-each select="$derivates/str[@name='iviewFile']">
+      <xsl:call-template name="iViewLinkPrev">
+        <xsl:with-param name="mcrid" select="$mcrid" />
+        <xsl:with-param name="derivate" select="../str[@name='id']" />
+        <xsl:with-param name="fileName" select="." />
+      </xsl:call-template>
+    </xsl:for-each>
+    <xsl:for-each select="./arr[@name='derivateLink']/str">
+      <xsl:call-template name="iViewLinkPrev">
+        <xsl:with-param name="mcrid" select="$mcrid" />
+        <xsl:with-param name="derivateLink" select="." />
+      </xsl:call-template>
+    </xsl:for-each>
+  </xsl:template>
+
   <xsl:template match="doc" mode="hitInFiles">
+    <xsl:param name="fileNodeServlet" select="concat($ServletsBaseURL,'MCRFileNodeServlet/')" />
     <xsl:variable name="mcrid" select="@id" />
     <xsl:variable name="objectType" select="@objectType" />
     <xsl:variable name="files" select="key('files-by-object', $mcrid)" />
@@ -357,7 +336,26 @@
                 <!-- for every hit in derivate list files -->
                 <xsl:for-each select="key('files-by-derivate',$derivateId)">
                   <li>
-                    <xsl:apply-templates select="." mode="fileLink" />
+                    <!-- doc element of 'unmerged' response -->
+                    <xsl:variable name="filePath" select="str[@name='filePath']" />
+                    <xsl:variable name="fileName" select="str[@name='fileName']" />
+                    <xsl:choose>
+                      <xsl:when test="key('derivate',$mcrid)[str/@name='iviewFile' and str[@name='id']=$derivateId]">
+                        <!-- iview support detected generate link to image viewer -->
+                        <xsl:variable name="toolTipImg"
+                          select="concat($ServletsBaseURL,'MCRThumbnailServlet/',$derivateId,mcrxsl:encodeURIPath($filePath),$HttpSession)" />
+                        <a onMouseOver="show('{$toolTipImg}')" onMouseOut="toolTip()"
+                          href="{concat($WebApplicationBaseURL, 'receive/', $mcrid, '?jumpback=true&amp;maximized=true&amp;page=',$filePath,'&amp;derivate=', $derivateId)}"
+                          title="{i18n:translate('metaData.iView')}">
+                          <xsl:value-of select="$fileName" />
+                        </a>
+                      </xsl:when>
+                      <xsl:otherwise>
+                        <a href="{concat($fileNodeServlet,$derivateId,mcrxsl:encodeURIPath($filePath),$HttpSession)}">
+                          <xsl:value-of select="$fileName" />
+                        </a>
+                      </xsl:otherwise>
+                    </xsl:choose>
                   </li>
                 </xsl:for-each>
               </xsl:when>
@@ -376,16 +374,60 @@
     </xsl:if>
   </xsl:template>
 
-  <xsl:template match="doc" mode="fileLink">
-    <xsl:param name="mcrid" select="str[@name='returnId']" />
-    <xsl:param name="derivateId" select="str[@name='derivateID']"/>
-    <xsl:param name="fileNodeServlet" select="concat($ServletsBaseURL,'MCRFileNodeServlet/')" />
-    <!-- doc element of 'unmerged' response -->
-    <xsl:variable name="filePath" select="str[@name='filePath']" />
-    <xsl:variable name="fileName" select="str[@name='fileName']" />
-    <a href="{concat($fileNodeServlet,$derivateId,mcrxsl:encodeURIPath($filePath),$HttpSession)}">
-      <xsl:value-of select="$fileName" />
-    </a>
+  <xsl:template name="iViewLinkPrev">
+    <xsl:param name="derivateLink" />
+    <xsl:param name="derivate">
+      <xsl:if test="$derivateLink">
+        <xsl:value-of select="substring-before($derivateLink , '/')" />
+      </xsl:if>
+    </xsl:param>
+    <xsl:param name="mcrid" />
+    <xsl:param name="fileName" />
+
+    <xsl:if test="string-length($derivate) &gt; 0 and $mcrid">
+      <xsl:variable name="pageToDisplay">
+        <xsl:choose>
+          <xsl:when test="$fileName">
+            <xsl:value-of select="$fileName" />
+          </xsl:when>
+          <xsl:when test="$derivateLink">
+            <xsl:value-of select="concat('/', substring-after($derivateLink, '/'))" />
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:call-template name="iview2.getSupport">
+              <xsl:with-param select="$derivate" name="derivID" />
+            </xsl:call-template>
+          </xsl:otherwise>
+        </xsl:choose>
+      </xsl:variable>
+      <xsl:if test="$pageToDisplay != ''">
+        <xsl:variable name="object-view-derivate" select="acl:checkPermission($mcrid,'view-derivate')" />
+        <xsl:variable name="isDisplayedEnabled" select="mcrxsl:isDisplayedEnabledDerivate($derivate)" />
+        <xsl:variable name="mayWriteDerivate" select="acl:checkPermission($derivate,'writedb')" />
+        <xsl:choose>
+          <xsl:when
+            test="acl:checkPermissionForReadingDerivate($derivate) and $object-view-derivate and $isDisplayedEnabled = 'true' or $mayWriteDerivate">
+            <a
+              href="{concat($WebApplicationBaseURL, 'receive/', $mcrid, '?jumpback=true&amp;maximized=true&amp;page=',$pageToDisplay,'&amp;derivate=', $derivate)}"
+              title="{i18n:translate('metaData.iView')}">
+              <xsl:call-template name="iview2.getImageElement">
+                <xsl:with-param select="$derivate" name="derivate" />
+                <xsl:with-param select="$pageToDisplay" name="imagePath" />
+              </xsl:call-template>
+            </a>
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:if test="$isDisplayedEnabled = 'true'">
+              <xsl:variable name="objectType" select="substring-before(substring-after($mcrid,'_'),'_')" />
+              <span>
+                <!-- Zugriff auf 'Abbildung' gesperrt -->
+                <xsl:value-of select="i18n:translate('metaData.derivateLocked',i18n:translate(concat('metaData.',$objectType,'.[derivates]')))" />
+              </span>
+            </xsl:if>
+          </xsl:otherwise>
+        </xsl:choose>
+      </xsl:if>
+    </xsl:if>
   </xsl:template>
 
 </xsl:stylesheet>

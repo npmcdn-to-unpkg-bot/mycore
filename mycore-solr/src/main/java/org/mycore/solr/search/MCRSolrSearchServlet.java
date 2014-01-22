@@ -57,7 +57,7 @@ public class MCRSolrSearchServlet extends MCRServlet {
 
     private static final String JOIN_PATTERN = "{!join from=returnId to=id}";
 
-    private static final String PHRASE_QUERY_PARAM = "solr.phrase";
+    private static final String PHRASE_QUERY_PARAM = "phrase";
 
     /** Parameters that can be used within a select request to solr*/
     static final List<String> RESERVED_PARAMETER_KEYS;
@@ -65,7 +65,7 @@ public class MCRSolrSearchServlet extends MCRServlet {
     static {
         String[] parameter = new String[] { "q", "sort", "start", "rows", "pageDoc", "pageScore", "fq", "cache", "fl",
             "glob", "debug", "explainOther", "defType", "timeAllowed", "omitHeader", "sortOrder", "sortBy", "wt", "qf",
-            "q.alt", "mm", "pf", "ps", "qs", "tie", "bq", "bf", "lang", PHRASE_QUERY_PARAM };
+            "q.alt", "mm", "pf", "ps", "qs", "tie", "bq", "bf", PHRASE_QUERY_PARAM };
         RESERVED_PARAMETER_KEYS = Collections.unmodifiableList(Arrays.asList(parameter));
     }
 

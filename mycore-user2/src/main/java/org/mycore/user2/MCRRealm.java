@@ -25,13 +25,11 @@ package org.mycore.user2;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map.Entry;
 
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRConstants;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRSessionMgr;
-import org.mycore.common.config.MCRConfiguration;
 
 /**
  * Represents a realm of users. Each user belongs to a realm. Realms are configured 
@@ -59,12 +57,7 @@ public class MCRRealm {
 
     private String redirectParameter;
 
-    private String realmParameter;
-
-    private static String DEFAULT_LANG = MCRConfiguration.instance().getString("MCR.Metadata.DefaultLang",
-        MCRConstants.DEFAULT_LANG);
-
-    public static final String USER_INFORMATION_ATTR = "realmId";
+    private static String DEFAULT_LANG = MCRConfiguration.instance().getString("MCR.Metadata.DefaultLang", MCRConstants.DEFAULT_LANG);
 
     /** 
      * Creates a new realm.
@@ -178,34 +171,23 @@ public class MCRRealm {
      * @return the same as {@link #getLoginURL()} if <code>redirectParameter</code> is undefined for this realm
      */
     public String getLoginURL(String redirectURL) {
-        LinkedHashMap<String, String> parameter = new LinkedHashMap<>();
-        String redirect = getRedirectParameter();
-        if (redirect != null && redirectURL != null) {
-            parameter.put(redirect, redirectURL);
+        String loginURL = getLoginURL();
+        String param = getRedirectParameter();
+        if (param == null || redirectURL == null) {
+            return loginURL;
         }
-        String realmParameter = getRealmParameter();
-        if (realmParameter != null) {
-            parameter.put(realmParameter, getID());
-        }
-        if (parameter.isEmpty()) {
-            return getLoginURL();
-        }
-        StringBuilder loginURL = new StringBuilder(getLoginURL());
-        boolean firstParameter = !getLoginURL().contains("?");
+        String encoded;
         try {
-            for (Entry<String, String> entry : parameter.entrySet()) {
-                if (firstParameter) {
-                    loginURL.append('?');
-                    firstParameter = false;
-                } else {
-                    loginURL.append('&');
-                }
-                loginURL.append(entry.getKey()).append('=').append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-            }
-            return loginURL.toString();
+            encoded = URLEncoder.encode(redirectURL, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new MCRException(e);
         }
+        StringBuilder returnURL = new StringBuilder(loginURL);
+        returnURL.append(loginURL.contains("?") ? '&' : '?');
+        returnURL.append(param);
+        returnURL.append('=');
+        returnURL.append(encoded);
+        return returnURL.toString();
     }
 
     /**
@@ -220,14 +202,6 @@ public class MCRRealm {
      */
     void setRedirectParameter(String redirectParameter) {
         this.redirectParameter = redirectParameter;
-    }
-
-    public String getRealmParameter() {
-        return realmParameter;
-    }
-
-    public void setRealmParameter(String realmParameter) {
-        this.realmParameter = realmParameter;
     }
 
 }

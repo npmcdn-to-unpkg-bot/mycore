@@ -26,39 +26,31 @@ package org.mycore.frontend.xeditor.target;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 
-import org.jdom2.Document;
 import org.mycore.frontend.servlets.MCRServletJob;
 import org.mycore.frontend.xeditor.MCREditorSession;
-import org.mycore.frontend.xeditor.tracker.MCRChangeTracker;
 
 /**
  * @author Frank L\u00FCtzenkirchen
  */
-public class MCRServletTarget implements MCREditorTarget {
+public class MCRServletTarget extends MCREditorTarget {
 
     @Override
     public void handleSubmission(ServletContext context, MCRServletJob job, MCREditorSession session, String servletNameOrPath)
             throws Exception {
-        session.getSubmission().setSubmittedValues(job.getRequest().getParameterMap());
-        Document result = session.getEditedXML();
+        setSubmittedValues(job, session);
 
-        if (session.getValidator().isValid()) {
-            result = MCRChangeTracker.removeChangeTracking(result);
-            result = session.getXMLCleaner().clean(result);
-            result = session.getPostProcessor().process(result);
-
-            RequestDispatcher dispatcher = context.getNamedDispatcher(servletNameOrPath);
-            if (dispatcher == null)
-                dispatcher = context.getRequestDispatcher(servletNameOrPath);
-
-            job.getRequest().setAttribute("MCRXEditorSubmission", result);
-
-            session.setBreakpoint("After handling target servlet " + servletNameOrPath);
-
-            dispatcher.forward(job.getRequest(), job.getResponse());
-        } else {
-            session.setBreakpoint("After validation failed, target servlet " + servletNameOrPath);
-            job.getResponse().sendRedirect(session.getRedirectURL());
+        if (session.validate().failed()) {
+            redirectToEditorPage(job, session);
+            return;
         }
+
+        session.removeDeletedNodes();
+
+        RequestDispatcher dispatcher = context.getNamedDispatcher(servletNameOrPath);
+        if (dispatcher == null)
+            dispatcher = context.getRequestDispatcher(servletNameOrPath);
+
+        job.getRequest().setAttribute("MCRXEditorSubmission", session.getPostProcessedXML());
+        dispatcher.forward(job.getRequest(), job.getResponse());
     }
 }

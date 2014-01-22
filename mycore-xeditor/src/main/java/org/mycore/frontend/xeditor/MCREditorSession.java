@@ -24,24 +24,23 @@
 package org.mycore.frontend.xeditor;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Iterator;
+import java.text.ParseException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Set;
 
 import javax.xml.transform.TransformerException;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
+import org.jdom2.Element;
 import org.jdom2.JDOMException;
-import org.jdom2.Verifier;
+import org.mycore.common.content.MCRContent;
+import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.common.content.MCRSourceContent;
-import org.mycore.common.xsl.MCRParameterCollector;
-import org.mycore.frontend.xeditor.tracker.MCRBreakpoint;
-import org.mycore.frontend.xeditor.tracker.MCRChangeTracker;
-import org.mycore.frontend.xeditor.validation.MCRXEditorValidator;
+import org.mycore.common.content.transformer.MCRXSL2XMLTransformer;
 import org.xml.sax.SAXException;
 
 /**
@@ -53,49 +52,26 @@ public class MCREditorSession {
 
     private String id;
 
-    private String url;
-
     private Map<String, String[]> requestParameters;
-
-    private Map<String, Object> variables;
-
-    private String cancelURL;
 
     private Document editedXML;
 
-    private MCRChangeTracker tracker = new MCRChangeTracker();
+    private Set<String> xPathsOfDisplayedFields = new HashSet<String>();
 
-    private MCREditorSubmission submission = new MCREditorSubmission(this);
+    private String sourceURI;
 
-    private MCRXEditorValidator validator = new MCRXEditorValidator(this);
+    private String cancelURL;
 
-    private MCRXMLCleaner cleaner = new MCRXMLCleaner();
+    private String postProcessorXSL;
 
-    private MCRXEditorPostProcessor postProcessor = new MCRXEditorPostProcessor();
+    private MCRXEditorValidator validator = new MCRXEditorValidator();
 
-    public MCREditorSession(Map<String, String[]> requestParameters, MCRParameterCollector collector) {
+    public MCREditorSession(Map<String, String[]> requestParameters) {
         this.requestParameters = requestParameters;
-        this.variables = collector.getParameterMap();
-        removeIllegalVariables();
     }
 
     public MCREditorSession() {
-        this(Collections.<String, String[]> emptyMap(), new MCRParameterCollector());
-    }
-
-    public Map<String, Object> getVariables() {
-        return variables;
-    }
-
-    private void removeIllegalVariables() {
-        for (Iterator<Entry<String, Object>> entries = variables.entrySet().iterator(); entries.hasNext();) {
-            String name = entries.next().getKey();
-            String result = Verifier.checkXMLName(name);
-            if (result != null) {
-                LOGGER.warn("Illegally named transformation parameter, removing " + name);
-                entries.remove();
-            }
-        }
+        this(new HashMap<String, String[]>());
     }
 
     public void setID(String id) {
@@ -106,17 +82,40 @@ public class MCREditorSession {
         return id;
     }
 
-    public String getCombinedSessionStepID() {
-        return id + "-" + tracker.getChangeCounter();
+    public void setEditedXML(Document xml) throws JDOMException {
+        if (editedXML == null) {
+            editedXML = xml;
+            MCRUsedNamespaces.addNamespacesFrom(editedXML.getRootElement());
+        }
     }
 
-    public void setPageURL(String pageURL) {
-        if (url == null)
-            this.url = pageURL.contains("?") ? pageURL.substring(0, pageURL.indexOf("?")) : pageURL;
+    public void setEditedXML(String uri) throws JDOMException, IOException, SAXException, TransformerException {
+        if (editedXML == null) {
+            LOGGER.info(id + " reading edited XML from " + uri);
+            sourceURI = uri;
+            setEditedXML(MCRSourceContent.getInstance(uri).asXML());
+        }
     }
 
-    public String getRedirectURL() {
-        return url + "?" + MCREditorSessionStore.XEDITOR_SESSION_PARAM + "=" + id;
+    public Document getEditedXML() {
+        return editedXML;
+    }
+
+    public void setPostProcessorXSL(String stylesheet) {
+        this.postProcessorXSL = stylesheet;
+    }
+
+    public Document getPostProcessedXML() throws IOException, JDOMException, SAXException {
+        if (postProcessorXSL == null)
+            return editedXML;
+
+        MCRContent source = new MCRJDOMContent(editedXML);
+        MCRContent transformed = MCRXSL2XMLTransformer.getInstance("xsl/" + postProcessorXSL).transform(source);
+        return transformed.asXML();
+    }
+
+    public String getSourceURI() {
+        return sourceURI;
     }
 
     public Map<String, String[]> getRequestParameters() {
@@ -128,77 +127,60 @@ public class MCREditorSession {
     }
 
     public void setCancelURL(String cancelURL) {
-        if (this.cancelURL != null)
-            return;
-
-        cancelURL = replaceParameters(cancelURL);
-        if (!cancelURL.contains("{")) {
+        if (cancelURL == null) {
             LOGGER.debug(id + " set cancel URL to " + cancelURL);
             this.cancelURL = cancelURL;
         }
     }
 
-    private final static Pattern PATTERN_URI = Pattern.compile("\\{\\$([^\\}]+)\\}");
+    public void markAsTransformedToInputField(Object node) {
+        String xPath = MCRXPathBuilder.buildXPath(node);
+        LOGGER.debug(id + " uses " + xPath);
+        xPathsOfDisplayedFields.add(xPath);
+    }
 
-    public String replaceParameters(String uri) {
-        Matcher m = PATTERN_URI.matcher(uri);
-        StringBuffer sb = new StringBuffer();
-        while (m.find()) {
-            String token = m.group(1);
-            Object value = variables.get(token);
-            m.appendReplacement(sb, value == null ? m.group().replace("$", "\\$") : value.toString());
+    private void markAsResubmittedFromInputField(Object node) {
+        String xPath = MCRXPathBuilder.buildXPath(node);
+        LOGGER.debug(id + " set value of " + xPath);
+        xPathsOfDisplayedFields.remove(xPath);
+    }
+
+    public void setSubmittedValues(String xPath, String[] values) throws JDOMException, ParseException {
+        MCRBinding rootBinding = new MCRBinding(editedXML);
+        MCRBinding binding = new MCRBinding(xPath, rootBinding);
+        List<Object> boundNodes = binding.getBoundNodes();
+
+        while (boundNodes.size() < values.length) {
+            Element newElement = binding.cloneBoundElement(boundNodes.size() - 1);
+            markAsTransformedToInputField(newElement);
         }
-        m.appendTail(sb);
-        return sb.toString();
+
+        for (int i = 0; i < values.length; i++) {
+            String value = values[i] == null ? "" : values[i].trim();
+            binding.setValue(i, value);
+            if (!value.isEmpty())
+                markAsResubmittedFromInputField(boundNodes.get(i));
+        }
     }
 
-    public Document getEditedXML() {
-        return editedXML;
+    public void removeDeletedNodes() throws JDOMException, ParseException {
+        MCRBinding root = new MCRBinding(editedXML);
+        for (String xPath : xPathsOfDisplayedFields)
+            new MCRBinding(xPath, root).detachBoundNodes();
+
+        forgetDisplayedFields();
     }
 
-    public void setEditedXML(Document editedXML) throws JDOMException {
-        this.editedXML = editedXML;
-        MCRUsedNamespaces.addNamespacesFrom(editedXML.getRootElement());
-    }
-
-    public void setEditedXML(String uri) throws JDOMException, IOException, SAXException, TransformerException {
-        if ((editedXML != null) || (uri = replaceParameters(uri)).contains("{"))
-            return;
-
-        LOGGER.info("Reading edited XML from " + uri);
-        Document xml = MCRSourceContent.getInstance(uri).asXML();
-        setEditedXML(xml);
-        setBreakpoint("Reading XML from " + uri);
-    }
-
-    public MCRBinding getRootBinding() throws JDOMException {
-        MCRBinding binding = new MCRBinding(editedXML, tracker);
-        binding.setVariables(variables);
-        return binding;
-    }
-
-    public void setBreakpoint(String msg) {
-        if (editedXML != null)
-            tracker.track(MCRBreakpoint.setBreakpoint(editedXML.getRootElement(), msg));
-    }
-
-    public MCRChangeTracker getChangeTracker() {
-        return tracker;
-    }
-
-    public MCREditorSubmission getSubmission() {
-        return submission;
+    public void forgetDisplayedFields() {
+        xPathsOfDisplayedFields.clear();
     }
 
     public MCRXEditorValidator getValidator() {
         return validator;
     }
 
-    public MCRXMLCleaner getXMLCleaner() {
-        return cleaner;
-    }
-
-    public MCRXEditorPostProcessor getPostProcessor() {
-        return postProcessor;
+    public MCRXEditorValidator validate() throws JDOMException, ParseException {
+        validator.validate(editedXML);
+        return validator;
     }
 }

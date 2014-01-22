@@ -23,10 +23,8 @@
 
 package org.mycore.frontend.xeditor;
 
-import org.jaxen.JaxenException;
-
+import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,15 +38,6 @@ import org.jdom2.Parent;
 import org.jdom2.filter.Filters;
 import org.jdom2.xpath.XPathExpression;
 import org.jdom2.xpath.XPathFactory;
-import org.mycore.frontend.xeditor.tracker.MCRAddedAttribute;
-import org.mycore.frontend.xeditor.tracker.MCRAddedElement;
-import org.mycore.frontend.xeditor.tracker.MCRChangeData;
-import org.mycore.frontend.xeditor.tracker.MCRChangeTracker;
-import org.mycore.frontend.xeditor.tracker.MCRRemoveAttribute;
-import org.mycore.frontend.xeditor.tracker.MCRRemoveElement;
-import org.mycore.frontend.xeditor.tracker.MCRSetAttributeValue;
-import org.mycore.frontend.xeditor.tracker.MCRSetElementText;
-import org.mycore.frontend.xeditor.tracker.MCRSwapElements;
 
 /**
  * @author Frank L\u00FCtzenkirchen
@@ -57,69 +46,44 @@ public class MCRBinding {
 
     private final static Logger LOGGER = Logger.getLogger(MCRBinding.class);
 
-    protected String name;
+    private XPathExpression<Object> xPath;
 
-    protected List<Object> boundNodes = new ArrayList<Object>();
+    private List<Object> boundNodes = new ArrayList<Object>();
 
-    protected MCRBinding parent;
+    private String name;
 
-    protected List<MCRBinding> children = new ArrayList<MCRBinding>();
+    private List<MCRBinding> children = new ArrayList<MCRBinding>();
 
-    protected MCRChangeTracker tracker;
+    private MCRBinding parent;
 
     public MCRBinding(Document document) throws JDOMException {
+        this.xPath = XPathFactory.instance().compile("/", Filters.fpassthrough(), null, MCRUsedNamespaces.getNamespaces());
         this.boundNodes.add(document);
     }
 
-    public MCRBinding(Document document, MCRChangeTracker tracker) throws JDOMException {
-        this(document);
-        this.tracker = tracker;
-
+    public MCRBinding(String xPathExpression, MCRBinding parent) throws JDOMException, ParseException {
+        this(xPathExpression, null, null, parent);
     }
 
-    private MCRBinding(MCRBinding parent) {
+    public MCRBinding(String xPathExpression, String defaultValue, String name, MCRBinding parent) throws JDOMException, ParseException {
+        if (!((name == null) || name.isEmpty()))
+            this.name = name;
+
         this.parent = parent;
         parent.children.add(this);
-    }
-
-    public MCRBinding(String xPath, boolean buildIfNotExists, MCRBinding parent) throws JDOMException, JaxenException {
-        this(parent);
-        bind(xPath, buildIfNotExists, null);
-    }
-
-    public MCRBinding(String xPath, String initialValue, String name, MCRBinding parent) throws JDOMException, JaxenException {
-        this(parent);
-        this.name = (name != null) && !name.isEmpty() ? name : null;
-        bind(xPath, true, initialValue);
-    }
-
-    private void bind(String xPath, boolean buildIfNotExists, String initialValue) throws JaxenException {
         Map<String, Object> variables = buildXPathVariables();
 
-        XPathExpression<Object> xPathExpr = XPathFactory.instance().compile(xPath, Filters.fpassthrough(), variables,
-                MCRUsedNamespaces.getNamespaces());
+        this.xPath = XPathFactory.instance().compile(xPathExpression, Filters.fpassthrough(), variables, MCRUsedNamespaces.getNamespaces());
 
-        boundNodes.addAll(xPathExpr.evaluate(parent.getBoundNodes()));
+        boundNodes.addAll(xPath.evaluate(parent.getBoundNodes()));
 
-        for (Object boundNode : boundNodes)
-            if (!(boundNode instanceof Element || boundNode instanceof Attribute || boundNode instanceof Document))
-                throw new RuntimeException("XPath MUST only bind either element, attribute or document nodes: " + xPath);
+        LOGGER.debug("Bind to " + xPathExpression + " selected " + boundNodes.size() + " node(s)");
 
-        LOGGER.debug("Bind to " + xPath + " selected " + boundNodes.size() + " node(s)");
-
-        if (boundNodes.isEmpty() && buildIfNotExists) {
-            MCRNodeBuilder builder = new MCRNodeBuilder(variables);
-            Object built = builder.buildNode(xPath, initialValue, (Parent) (parent.getBoundNode()));
-            LOGGER.debug("Bind to " + xPath + " generated node " + MCRXPathBuilder.buildXPath(built));
+        if (boundNodes.isEmpty()) {
+            Object built = MCRNodeBuilder.build(xPathExpression, defaultValue, variables, (Parent) (parent.getBoundNode()));
+            LOGGER.debug("Bind to " + xPathExpression + " generated node " + MCRXPathBuilder.buildXPath(built));
             boundNodes.add(built);
-            trackNodeCreated(builder.getFirstNodeBuilt());
         }
-    }
-
-    public MCRBinding(int pos, MCRBinding parent) {
-        this(parent);
-        boundNodes.add(parent.getBoundNodes().get(pos - 1));
-        LOGGER.debug("Repeater bind to child [" + pos + "]");
     }
 
     public List<Object> getBoundNodes() {
@@ -130,45 +94,32 @@ public class MCRBinding {
         return boundNodes.get(0);
     }
 
-    public void removeBoundNode(int index) {
-        Object node = boundNodes.remove(index);
-        if (node instanceof Element)
-            track(MCRRemoveElement.remove((Element) node));
-        else
-            track(MCRRemoveAttribute.remove((Attribute) node));
-    }
-
     public Element cloneBoundElement(int index) {
         Element template = (Element) (boundNodes.get(index));
         Element newElement = template.clone();
         Element parent = template.getParentElement();
         int indexInParent = parent.indexOf(template) + 1;
         parent.addContent(indexInParent, newElement);
-        boundNodes.add(index + 1, newElement);
-        trackNodeCreated(newElement);
+        boundNodes.add(newElement);
         return newElement;
     }
 
-    private void trackNodeCreated(Object node) {
-        if (node instanceof Element) {
-            Element element = (Element) node;
-            MCRChangeTracker.removeChangeTracking(element);
-            track(MCRAddedElement.added(element));
-        } else {
-            Attribute attribute = (Attribute) node;
-            track(MCRAddedAttribute.added(attribute));
-        }
+    public void detachBoundNodes() {
+        while (!boundNodes.isEmpty())
+            detachBoundNode();
+    }
+
+    public void detachBoundNode() {
+        Object node = getBoundNode();
+        if (node instanceof Attribute)
+            ((Attribute) node).detach();
+        else
+            ((Element) node).detach();
+        boundNodes.remove(node);
     }
 
     public MCRBinding getParent() {
         return parent;
-    }
-
-    public void detach() {
-        if (parent != null) {
-            parent.children.remove(this);
-            this.parent = null;
-        }
     }
 
     public List<MCRBinding> getAncestorsAndSelf() {
@@ -181,15 +132,15 @@ public class MCRBinding {
         return ancestors;
     }
 
-    public String getValue() {
-        return getValue(getBoundNode());
-    }
-
-    public static String getValue(Object node) {
+    private String getValue(Object node) {
         if (node instanceof Element)
             return ((Element) node).getTextTrim();
         else
             return ((Attribute) node).getValue();
+    }
+
+    public String getValue() {
+        return getValue(getBoundNode());
     }
 
     public boolean hasValue(String value) {
@@ -204,27 +155,15 @@ public class MCRBinding {
         setValue(getBoundNode(), value);
     }
 
-    public void setDefault(String value) {
-        if (getValue().isEmpty())
-            setValue(getBoundNode(), value);
-    }
-
-    public void setValues(String value) {
-        for (int i = 0; i < boundNodes.size(); i++)
-            setValue(i, value);
-    }
-
     public void setValue(int index, String value) {
-        setValue(boundNodes.get(index), value);
+        setValue(getBoundNodes().get(index), value);
     }
 
     private void setValue(Object node, String value) {
-        if (value.equals(getValue(node)))
-            return;
+        if (node instanceof Element)
+            ((Element) node).setText(value);
         else if (node instanceof Attribute)
-            track(MCRSetAttributeValue.setValue((Attribute) node, value));
-        else
-            track(MCRSetElementText.setText((Element) node, value));
+            ((Attribute) node).setValue(value);
     }
 
     public String getName() {
@@ -235,25 +174,8 @@ public class MCRBinding {
         return children;
     }
 
-    private Map<String, Object> staticVariables = null;
-
-    private Map<String, Object> getVariables() {
-        if (staticVariables != null)
-            return staticVariables;
-        else if (parent != null)
-            return parent.getVariables();
-        else
-            return Collections.<String, Object> emptyMap();
-    }
-
-    public void setVariables(Map<String, Object> variables) {
-        this.staticVariables = variables;
-    }
-
     public Map<String, Object> buildXPathVariables() {
         Map<String, Object> variables = new HashMap<String, Object>();
-        variables.putAll(getVariables());
-
         for (MCRBinding ancestor : getAncestorsAndSelf()) {
             for (MCRBinding child : ancestor.getChildren()) {
                 String childName = child.getName();
@@ -264,26 +186,11 @@ public class MCRBinding {
         return variables;
     }
 
+    public String getRelativeXPath() {
+        return xPath.getExpression();
+    }
+
     public String getAbsoluteXPath() {
         return MCRXPathBuilder.buildXPath(getBoundNode());
-    }
-
-    public void swap(String swapParameter) throws JaxenException, JDOMException {
-        String[] tokens = swapParameter.split("\\|");
-        String xPath = tokens[0];
-        int posA = Integer.parseInt(tokens[1]);
-        int posB = Integer.parseInt(tokens[2]);
-
-        MCRBinding binding = new MCRBinding(xPath, false, this);
-        Element parent = (Element) (binding.getBoundNode());
-        binding.track(MCRSwapElements.swap(parent, posA, posB));
-        binding.detach();
-    }
-
-    public void track(MCRChangeData change) {
-        if (tracker != null)
-            tracker.track(change);
-        else if (parent != null)
-            parent.track(change);
     }
 }

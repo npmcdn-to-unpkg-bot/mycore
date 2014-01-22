@@ -26,7 +26,7 @@ package org.mycore.access.mcrimpl;
 import java.util.Collection;
 
 import org.apache.log4j.Logger;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 
 /**
  * The purpose of this interface is to make the choice of the persistence layer
@@ -47,8 +47,6 @@ public abstract class MCRRuleStore {
     public abstract MCRAccessRule getRule(String ruleid);
 
     public abstract boolean existsRule(String ruleid);
-    
-    public abstract boolean isRuleInUse(String ruleid);
 
     public abstract Collection<String> retrieveAllIDs();
 

@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.oai.pmh.BadResumptionTokenException;
 import org.mycore.oai.pmh.CannotDisseminateFormatException;
 import org.mycore.oai.pmh.Header;
@@ -58,7 +58,7 @@ public class MCROAIAdapter implements OAIAdapter {
     public static int DEFAULT_PARTITION_SIZE;
 
     protected String baseURL;
-
+    
     protected MCROAIIdentify identify;
 
     protected String configPrefix;
@@ -112,8 +112,7 @@ public class MCROAIAdapter implements OAIAdapter {
     public MCROAISearchManager getSearchManager() {
         if (this.searchManager == null) {
             this.searchManager = new MCROAISearchManager();
-            int partitionSize = MCRConfiguration.instance().getInt(getConfigPrefix() + "ResumptionTokens.PartitionSize",
-                    DEFAULT_PARTITION_SIZE);
+            int partitionSize = MCRConfiguration.instance().getInt(getConfigPrefix() + "ResumptionTokens.PartitionSize", DEFAULT_PARTITION_SIZE);
             this.searchManager.init(getConfigPrefix(), getIdentify().getDeletedRecordPolicy(), getObjectManager(), partitionSize);
         }
         return this.searchManager;
@@ -129,7 +128,7 @@ public class MCROAIAdapter implements OAIAdapter {
      */
     @Override
     public MCROAIIdentify getIdentify() {
-        if (this.identify == null) {
+        if(this.identify == null) {
             this.identify = new MCROAIIdentify(this.baseURL, getConfigPrefix());
         }
         return this.identify;
@@ -238,21 +237,16 @@ public class MCROAIAdapter implements OAIAdapter {
         MCROAIObjectManager objectManager = getObjectManager();
         if (!objectManager.exists(identifier)) {
             DeletedRecordPolicy rP = getIdentify().getDeletedRecordPolicy();
-            if (DeletedRecordPolicy.Persistent.equals(rP)) {
+            if(DeletedRecordPolicy.Persistent.equals(rP)) {
                 // get deleted item
                 Record deletedRecord = objectManager.getDeletedRecord(objectManager.getMyCoReId(identifier));
-                if (deletedRecord != null) {
+                if(deletedRecord != null) {
                     return deletedRecord;
                 }
             }
             throw new IdDoesNotExistException(identifier);
         }
-        Record record = objectManager.getRecord(objectManager.getMyCoReId(identifier), format);
-        if (record == null) {
-            // oai-pmh does not offer a better exception for internal server errros
-            throw new IdDoesNotExistException(identifier);
-        }
-        return record;
+        return objectManager.getRecord(objectManager.getMyCoReId(identifier), format);
     }
 
     /*

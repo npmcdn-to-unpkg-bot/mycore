@@ -34,26 +34,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpSession;
-import javax.xml.transform.TransformerException;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.Namespace;
+import org.mycore.common.MCRConfiguration;
+import org.mycore.common.MCRConfigurationException;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.MCRUtils;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.common.config.MCRConfigurationException;
 import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.datamodel.metadata.MCRObjectID;
 import org.mycore.datamodel.metadata.validator.MCREditorOutValidator;
 import org.mycore.frontend.editor.MCREditorSubmission;
 import org.mycore.frontend.editor.MCRRequestParameters;
 import org.mycore.frontend.workflow.MCRSimpleWorkflowManager;
-import org.xml.sax.SAXException;
 
 /**
  * This class is the superclass of servlets which checks the MCREditorServlet
@@ -210,11 +208,9 @@ abstract public class MCRCheckDataBase extends MCRCheckBase {
      * @param lang
      *            the current language
      * @throws IOException 
-     * @throws SAXException 
-     * @throws TransformerException 
      */
     protected org.jdom2.Document prepareMetadata(org.jdom2.Document jdom_in, MCRObjectID ID, MCRServletJob job, String lang)
-            throws IOException, TransformerException, SAXException {
+            throws IOException {
         MCREditorOutValidator ev = null;
         try {
             ev = new MCREditorOutValidator(jdom_in, ID);
@@ -239,10 +235,8 @@ abstract public class MCRCheckDataBase extends MCRCheckBase {
     /**
      * A method to handle valid errors.
      * @throws IOException 
-     * @throws SAXException 
-     * @throws TransformerException 
      */
-    private void errorHandlerValid(MCRServletJob job, List<String> logtext, MCRObjectID ID, String lang) throws IOException, TransformerException, SAXException {
+    private void errorHandlerValid(MCRServletJob job, List<String> logtext, MCRObjectID ID, String lang) throws IOException {
         // handle HttpSession
         String sessionID = "";
         HttpSession session = job.getRequest().getSession(false);

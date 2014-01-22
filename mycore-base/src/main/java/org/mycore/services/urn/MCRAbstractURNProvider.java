@@ -1,5 +1,6 @@
 package org.mycore.services.urn;
 
+
 /**
  * Base implementation for IURNProviders
  * */
@@ -20,7 +21,8 @@ public abstract class MCRAbstractURNProvider implements MCRIURNProvider {
         MCRURN[] urn = new MCRURN[amount];
 
         for (int i = 1; i <= amount; i++) {
-            urn[i - 1] = new MCRURN(base.getNamespaceIdentfiers(), base.getNamespaceIdentfiersSpecificPart() + "-" + this.addLeadingZeroes(amount, i));
+            urn[i - 1] = new MCRURN(base.getNamespaceIdentfiers(), base.getNamespaceIdentfiersSpecificPart() + "-"
+                    + this.addLeadingZeroes(amount, i));
         }
         return urn;
     }
@@ -77,13 +79,4 @@ public abstract class MCRAbstractURNProvider implements MCRIURNProvider {
         /* no need to add zeroes at all */
         return valueS;
     }
-
-    /**
-     * @return null
-     * */
-    @Override
-    public String getNISS() {
-        return null;
-    }
-
 }

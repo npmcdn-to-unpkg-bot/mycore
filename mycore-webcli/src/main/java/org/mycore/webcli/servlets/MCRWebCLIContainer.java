@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,7 +45,8 @@ import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.MCRUsageException;
 import org.mycore.frontend.cli.MCRCommand;
-import org.mycore.webcli.cli.MCRWebCLICommandManager;
+import org.mycore.webcli.cli.MCRCommandPool;
+import org.mycore.webcli.cli.MCRKnownWebCLICommands;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -65,6 +67,10 @@ class MCRWebCLIContainer {
     private static Map<String, List<MCRCommand>> knownCommands;
 
     private final ProcessCallable processCallable;
+
+    private static final String JSON_POOL_NAME = "Pooled Commands";
+
+    private static long knownCommandsUpdateTime;
 
     private static final Logger LOGGER = Logger.getLogger(MCRWebCLIContainer.class);
 
@@ -169,12 +175,19 @@ class MCRWebCLIContainer {
     protected static void initializeCommands() {
         if (knownCommands == null) {
             knownCommands = new TreeMap<String, List<MCRCommand>>();
-            knownCommands.putAll(new MCRWebCLICommandManager().getCommandsMap());
+            knownCommands.putAll(new MCRKnownWebCLICommands().getCommandsMap());
+        } else if (knownCommands.containsKey(JSON_POOL_NAME)) {
+            knownCommands.remove(JSON_POOL_NAME);
+        }
+        knownCommandsUpdateTime = MCRCommandPool.instance().getLastModified();
+        final ArrayList<MCRCommand> dynamicCommandList = MCRCommandPool.instance().getPossibleCommands();
+        if (dynamicCommandList.size() > 0) {
+            knownCommands.put(JSON_POOL_NAME, dynamicCommandList);
         }
     }
 
     private static void updateKnownCommandsIfNeeded() {
-        if (knownCommands == null)
+        if (knownCommands == null || knownCommandsUpdateTime < MCRCommandPool.instance().getLastModified())
             initializeCommands();
     }
 
@@ -269,8 +282,8 @@ class MCRWebCLIContainer {
             return true;
         }
 
-        private List<String> runCommand(String command, List<MCRCommand> commandList) throws IllegalAccessException,
-            InvocationTargetException, ClassNotFoundException, NoSuchMethodException {
+        private List<String> runCommand(String command, List<MCRCommand> commandList) throws IllegalAccessException, InvocationTargetException,
+            ClassNotFoundException, NoSuchMethodException {
             List<String> commandsReturned = null;
             for (MCRCommand currentCommand : commandList) {
                 commandsReturned = currentCommand.invoke(command, this.getClass().getClassLoader());
@@ -378,11 +391,9 @@ class MCRWebCLIContainer {
             }
         }
 
-        @Override
         public void close() {
         }
 
-        @Override
         public boolean requiresLayout() {
             return false;
         }

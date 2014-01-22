@@ -24,7 +24,7 @@
 package org.mycore.backend.hibernate.tables;
 
 /**
- * This class implements the data structure of the MCRURN table.
+ * This class implement the data sructure of the MCRURN table.
  * 
  * @author Heiko Helmbrecht
  * @author Jens Kupferschmidt
@@ -36,8 +36,6 @@ public class MCRURN {
     private String path;
 
     private String filename;
-
-    private boolean registered, dfg;
 
     /**
      * The constructor of the class MCRURN
@@ -164,40 +162,5 @@ public class MCRURN {
      */
     public void setFilename(String filename) {
         this.filename = filename;
-    }
-
-    /**
-     * @return the registered
-     */
-    public boolean isRegistered() {
-        return registered;
-    }
-
-    /**
-     * @param registered the registered to set
-     */
-    public void setRegistered(boolean registered) {
-        this.registered = registered;
-    }
-
-    /**
-     * @return the dfg
-     */
-    public boolean isDfg() {
-        return dfg;
-    }
-
-    /**
-     * @param dfg the dfg to set
-     */
-    public void setDfg(boolean dfg) {
-        this.dfg = dfg;
-    }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#toString()
-     */
-    public String toString() {
-        return this.key.getMcrurn();
     }
 }

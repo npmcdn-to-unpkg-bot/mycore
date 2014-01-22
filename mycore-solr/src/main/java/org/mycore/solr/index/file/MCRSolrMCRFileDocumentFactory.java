@@ -27,32 +27,24 @@ import static org.mycore.solr.MCRSolrConstants.CONFIG_PREFIX;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashSet;
-import java.util.concurrent.TimeUnit;
 
 import javax.activation.MimetypesFileTypeMap;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.common.SolrInputDocument;
-import org.mycore.common.MCRCache;
-import org.mycore.common.MCRCache.ModifiedHandle;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.datamodel.classifications2.MCRCategLinkServiceFactory;
 import org.mycore.datamodel.classifications2.MCRCategory;
 import org.mycore.datamodel.classifications2.MCRCategoryDAO;
 import org.mycore.datamodel.classifications2.MCRCategoryDAOFactory;
 import org.mycore.datamodel.classifications2.MCRCategoryID;
 import org.mycore.datamodel.common.MCRISO8601Date;
-import org.mycore.datamodel.common.MCRXMLMetadataManager;
 import org.mycore.datamodel.ifs.MCRAudioVideoExtender;
 import org.mycore.datamodel.ifs.MCRFile;
 import org.mycore.datamodel.ifs.MCRFileContentType;
 import org.mycore.datamodel.ifs.MCRFileContentTypeFactory;
-import org.mycore.datamodel.metadata.MCRDerivate;
-import org.mycore.datamodel.metadata.MCRMetadataManager;
 import org.mycore.datamodel.metadata.MCRObjectID;
-import org.mycore.datamodel.metadata.MCRObjectService;
 import org.mycore.services.urn.MCRURNManager;
 import org.mycore.solr.index.handlers.MCRSolrIndexHandlerFactory;
 import org.mycore.solr.index.handlers.stream.MCRSolrFileIndexHandler;
@@ -69,15 +61,11 @@ public class MCRSolrMCRFileDocumentFactory {
     private static Logger LOGGER = Logger.getLogger(MCRSolrMCRFileDocumentFactory.class);
 
     private static MCRSolrMCRFileDocumentFactory instance = MCRConfiguration.instance().getInstanceOf(
-            CONFIG_PREFIX + "SolrInputDocument.MCRFile.Factory", MCRSolrMCRFileDocumentFactory.class);
+        CONFIG_PREFIX + "SolrInputDocument.MCRFile.Factory", MCRSolrMCRFileDocumentFactory.class);
 
     private static final MCRCategoryDAO CATEGORY_DAO = MCRCategoryDAOFactory.getInstance();
 
     private static MimetypesFileTypeMap mimetypesMap = new MimetypesFileTypeMap();
-
-    private static final MCRCache<String, String> derivateModified = new MCRCache<>(10000, "derivateID ISODateString cache");
-
-    private static MCRXMLMetadataManager XML_MANAGER = MCRXMLMetadataManager.instance();
 
     public static MCRSolrMCRFileDocumentFactory getInstance() {
         return instance;
@@ -97,16 +85,15 @@ public class MCRSolrMCRFileDocumentFactory {
         doc.setField("id", input.getID());
         MCRObjectID mcrObjID = input.getMCRObjectID();
         String absolutePath = input.getAbsolutePath();
-        String ownerID = input.getOwnerID();
         if (mcrObjID == null) {
             LOGGER.warn("Could not determine MCRObject for file " + absolutePath);
-            doc.setField("returnId", ownerID);
+            doc.setField("returnId", input.getOwnerID());
         } else {
             doc.setField("returnId", mcrObjID.toString());
             doc.setField("objectProject", mcrObjID.getProjectId());
         }
         doc.setField("objectType", "data_file");
-        doc.setField("derivateID", ownerID);
+        doc.setField("derivateID", input.getOwnerID());
         doc.setField("fileName", input.getName());
         doc.setField("filePath", absolutePath);
         doc.setField("stream_size", input.getSize());
@@ -124,12 +111,13 @@ public class MCRSolrMCRFileDocumentFactory {
         doc.setField("extension", input.getExtension());
         doc.setField("contentTypeID", input.getContentTypeID());
         doc.setField("contentType", input.getContentType().getLabel());
-        String urn = MCRURNManager.getURNForFile(ownerID, absolutePath.substring(0, absolutePath.lastIndexOf("/") + 1), input.getName());
+        String urn = MCRURNManager.getURNForFile(input.getOwnerID(),
+            absolutePath.substring(0, absolutePath.lastIndexOf("/") + 1), input.getName());
         if (urn != null) {
             doc.setField("fileURN", urn);
         }
         Collection<MCRCategoryID> linksFromReference = MCRCategLinkServiceFactory.getInstance().getLinksFromReference(
-                MCRFile.getCategLinkReference(MCRObjectID.getInstance(ownerID), absolutePath));
+            MCRFile.getCategLinkReference(MCRObjectID.getInstance(input.getOwnerID()), absolutePath));
         HashSet<MCRCategoryID> linkedCategories = new HashSet<>(linksFromReference);
         for (MCRCategoryID category : linksFromReference) {
             for (MCRCategory parent : CATEGORY_DAO.getParents(category)) {
@@ -142,7 +130,6 @@ public class MCRSolrMCRFileDocumentFactory {
         MCRISO8601Date iDate = new MCRISO8601Date();
         iDate.setDate(input.getLastModified().getTime());
         doc.setField("modified", iDate.getISOString());
-        doc.setField("derivateModified", getDerivateModified(ownerID));
 
         if (input.hasAudioVideoExtender()) {
             MCRAudioVideoExtender ext = input.getAudioVideoExtender();
@@ -157,25 +144,6 @@ public class MCRSolrMCRFileDocumentFactory {
         }
 
         return doc;
-    }
-
-    /**
-     * returns ISO8601 formated string of when derivate was last modified
-     * @param derivateID
-     * @throws IOException thrown by {@link ModifiedHandle#getLastModified()}
-     */
-    public static String getDerivateModified(final String derivateID) throws IOException {
-        MCRObjectID derID = MCRObjectID.getInstance(derivateID);
-        ModifiedHandle modifiedHandle = XML_MANAGER.getLastModifiedHandle(derID, 30, TimeUnit.SECONDS);
-        String modified = derivateModified.getIfUpToDate(derivateID, modifiedHandle);
-        if (modified == null) {
-            Date date = new Date(modifiedHandle.getLastModified());
-            MCRISO8601Date date2 = new MCRISO8601Date();
-            date2.setDate(date);
-            modified = date2.getISOString();
-            derivateModified.put(derivateID, modified);
-        }
-        return modified;
     }
 
 }

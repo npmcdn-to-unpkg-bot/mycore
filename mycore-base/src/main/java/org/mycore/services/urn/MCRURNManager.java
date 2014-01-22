@@ -24,14 +24,10 @@
 package org.mycore.services.urn;
 
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
-import org.mycore.backend.hibernate.tables.MCRURN;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.common.config.MCRConfigurationException;
-import org.mycore.datamodel.metadata.MCRObjectID;
+import org.mycore.common.MCRConfiguration;
+import org.mycore.common.MCRConfigurationException;
 
 /**
  * Provides methods to create URNs (urn:nbn:de) and assign them to documents. A
@@ -332,52 +328,5 @@ public class MCRURNManager {
 
         assignURN(urn, documentID);
         return urn;
-    }
-
-    /**
-     * @param registered
-     * @return the count of urn matching the given 'registered' attribute
-     */
-    public static long getCount(boolean registered) {
-        return store.getCount(registered);
-    }
-
-    /**
-     * @param registered
-     * @param start
-     * @param rows
-     * @return
-     */
-    public static List<MCRURN> get(boolean registered, int start, int rows) {
-        return store.get(registered, start, rows);
-    }
-
-    /**
-     * @param urn
-     */
-    public static void update(MCRURN urn) {
-        store.update(urn);
-    }
-
-    /**
-     * Get all URN for the given object id.
-     * 
-     * @param id
-     * @return
-     */
-    public static List<MCRURN> get(MCRObjectID id) {
-        return store.get(id);
-    }
-
-    /**
-     * @param registered
-     * @param dfg
-     * @param start
-     * @param rows
-     * 
-     * @return a {@link List<MCRURN>} of {@link MCRURN} where path and file name are just blanks or null;
-     */
-    public static List<MCRURN> getBaseURN(boolean registered, boolean dfg, int start, int rows) {
-        return store.getBaseURN(registered, dfg, start, rows);
     }
 }

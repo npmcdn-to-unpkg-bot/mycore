@@ -25,7 +25,6 @@ package org.mycore.datamodel.ifs2;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.provider.local.LocalFile;
@@ -123,11 +122,25 @@ public class MCRFile extends MCRStoredNode {
      */
     public String setContent(MCRContent source) throws IOException {
         MCRContentInputStream cis = source.getContentInputStream();
-        source.sendTo(fo);
+        new MCRStreamContent(cis).sendTo(fo);
         String md5 = cis.getMD5String();
         data.setAttribute("md5", md5);
         getRoot().saveAdditionalData();
         return md5;
+    }
+
+    /**
+     * Returns the local java.io.File representing this stored file. Be careful
+     * to use this only for reading data, do never modify directly!
+     * 
+     * @return the file in the local filesystem representing this file
+     */
+    public File getLocalFile() throws IOException {
+        if (fo instanceof LocalFile) {
+            return new File(fo.getURL().getPath());
+        } else {
+            return null;
+        }
     }
 
     /**

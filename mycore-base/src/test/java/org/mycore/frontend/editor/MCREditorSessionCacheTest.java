@@ -6,23 +6,20 @@ import static org.junit.Assert.*;
 import org.jdom2.Element;
 import org.junit.Test;
 import org.junit.Before;
-import org.mycore.common.MCRTestCase;
 
-public class MCREditorSessionCacheTest extends MCRTestCase{
+public class MCREditorSessionCacheTest {
 
     private Element xml;
 
     private MCRParameters parameters;
 
-    private MCREditorSessionCache cache;
+    private MCREditorSessionCache cache = MCREditorSessionCache.instance();
 
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
+    public void setup() {
         xml = new Element("editor");
         parameters = new MCRParameters();
         parameters.addParameterValue("id", "4711");
-        cache = MCREditorSessionCache.instance();
     }
 
     @Test

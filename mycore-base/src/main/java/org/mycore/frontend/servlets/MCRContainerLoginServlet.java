@@ -67,7 +67,7 @@ public class MCRContainerLoginServlet extends MCRServlet {
         job.getResponse().sendRedirect(job.getResponse().encodeRedirectURL(backto_url));
     }
 
-    protected static class ContainerUserInformation implements MCRUserInformation {
+    private static class ContainerUserInformation implements MCRUserInformation {
         MCRSession session;
 
         String lastUser;
@@ -102,7 +102,7 @@ public class MCRContainerLoginServlet extends MCRServlet {
             return null;
         }
 
-        protected HttpServletRequest getCurrentRequest() {
+        private HttpServletRequest getCurrentRequest() {
             Logger.getLogger(getClass()).debug("Getting request from session: " + session.getID());
             MCRServletJob job = (MCRServletJob) session.get(MCRServlet.MCR_SERVLET_JOB_KEY);
             return job == null ? null : job.getRequest();

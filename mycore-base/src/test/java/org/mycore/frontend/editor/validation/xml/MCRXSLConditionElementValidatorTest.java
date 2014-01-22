@@ -12,9 +12,7 @@ import org.mycore.frontend.editor.validation.xml.MCRXSLConditionElementValidator
 public class MCRXSLConditionElementValidatorTest extends MCRValidatorTest {
 
     @Before
-    @Override
-    public void setUp() throws Exception {
-        super.setUp();
+    public void setup() {
         validator = new MCRXSLConditionElementValidator();
     }
 

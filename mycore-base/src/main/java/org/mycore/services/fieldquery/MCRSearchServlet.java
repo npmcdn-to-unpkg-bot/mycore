@@ -37,16 +37,15 @@ import java.util.StringTokenizer;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.TransformerException;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.filter.ElementFilter;
 import org.jdom2.output.XMLOutputter;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRUsageException;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.frontend.editor.MCREditorSubmission;
 import org.mycore.frontend.servlets.MCRServlet;
@@ -55,7 +54,6 @@ import org.mycore.parsers.bool.MCRAndCondition;
 import org.mycore.parsers.bool.MCRCondition;
 import org.mycore.parsers.bool.MCROrCondition;
 import org.mycore.parsers.bool.MCRSetCondition;
-import org.xml.sax.SAXException;
 
 /**
  * Executes queries and presents result pages. Queries can be submitted in four
@@ -127,8 +125,8 @@ public class MCRSearchServlet extends MCRServlet {
     protected MCRQuery buildNameValueQuery(HttpServletRequest req) {
         MCRAndCondition condition = new MCRAndCondition();
 
-        for (Enumeration<String> names = req.getParameterNames(); names.hasMoreElements();) {
-            String name = names.nextElement();
+        for (Enumeration names = req.getParameterNames(); names.hasMoreElements();) {
+            String name = (String) names.nextElement();
             if (name.endsWith(".operator")) {
                 continue;
             }
@@ -182,6 +180,7 @@ public class MCRSearchServlet extends MCRServlet {
             String operator = element.getAttributeValue("operator", defaultOperator);
             element.setAttribute("operator", operator);
 
+            @SuppressWarnings("unchecked")
             List<Element> values = element.getChildren("value");
             if (values != null && values.size() > 0) {
                 element.removeAttribute("field");
@@ -217,7 +216,8 @@ public class MCRSearchServlet extends MCRServlet {
 
             // Remove conditions without values
             List<Element> empty = new ArrayList<Element>();
-            for (Iterator<Element> it = conditions.getDescendants(new ElementFilter("condition")); it.hasNext();) {
+            for (@SuppressWarnings("unchecked")
+            Iterator<Element> it = conditions.getDescendants(new ElementFilter("condition")); it.hasNext();) {
                 Element cond = it.next();
                 if (cond.getAttribute("value") == null) {
                     empty.add(cond);
@@ -227,7 +227,8 @@ public class MCRSearchServlet extends MCRServlet {
             // Remove empty sort conditions
             Element sortBy = root.getChild("sortBy");
             if (sortBy != null) {
-                for (Iterator<Element> iterator = sortBy.getChildren("field").iterator(); iterator.hasNext();) {
+                for (@SuppressWarnings("unchecked")
+                Iterator<Element> iterator = sortBy.getChildren("field").iterator(); iterator.hasNext();) {
                     Element field = iterator.next();
                     if (field.getAttributeValue("name", "").length() == 0) {
                         empty.add(field);
@@ -261,7 +262,8 @@ public class MCRSearchServlet extends MCRServlet {
         query.setMaxResults(Integer.parseInt(maxResults));
 
         List<String> sortFields = new ArrayList<String>();
-        for (Enumeration<String> names = req.getParameterNames(); names.hasMoreElements();) {
+        for (@SuppressWarnings("unchecked")
+        Enumeration<String> names = req.getParameterNames(); names.hasMoreElements();) {
             String name = (String) names.nextElement();
             if (name.contains(".sortField")) {
                 sortFields.add(name);
@@ -293,7 +295,7 @@ public class MCRSearchServlet extends MCRServlet {
     }
 
     @Override
-    public void doGetPost(MCRServletJob job) throws IOException, ServletException, TransformerException, SAXException {
+    public void doGetPost(MCRServletJob job) throws IOException, ServletException {
         HttpServletRequest request = job.getRequest();
         HttpServletResponse response = job.getResponse();
 
@@ -322,7 +324,7 @@ public class MCRSearchServlet extends MCRServlet {
      * MCRSearchServlet?mode=results&numPerPage=10&page=1
      */
     protected void showResults(HttpServletRequest request, HttpServletResponse response) throws IOException,
-        ServletException, TransformerException, SAXException {
+        ServletException {
         // Get cached results
         String id = request.getParameter("id");
         MCRCachedQueryData qd = MCRCachedQueryData.getData(id);
@@ -336,13 +338,13 @@ public class MCRSearchServlet extends MCRServlet {
     }
 
     protected void showResults(HttpServletRequest request, HttpServletResponse response, MCRQuery query, Document input)
-        throws IOException, ServletException, TransformerException, SAXException {
+        throws IOException, ServletException {
         MCRCachedQueryData qd = MCRCachedQueryData.cache(query, input);
         showResults(request, response, qd);
     }
 
     private void showResults(HttpServletRequest request, HttpServletResponse response, MCRCachedQueryData qd)
-        throws IOException, TransformerException, SAXException {
+        throws IOException {
         MCRResults results = qd.getResults();
 
         // Number of hits per page
@@ -431,32 +433,27 @@ public class MCRSearchServlet extends MCRServlet {
      * browser to the first results page
      */
     protected void doQuery(HttpServletRequest request, HttpServletResponse response) throws IOException,
-        ServletException, TransformerException, SAXException {
+        ServletException {
         MCREditorSubmission sub = (MCREditorSubmission) request.getAttribute("MCREditorSubmission");
         String searchString = getReqParameter(request, "search", null);
         String queryString = getReqParameter(request, "query", null);
 
-        Document input = (Document) request.getAttribute("MCRXEditorSubmission");
+        Document input;
         MCRQuery query;
 
         if (sub != null) {
             input = (Document) sub.getXML().clone();
             query = buildFormQuery(sub.getXML().getRootElement());
         } else {
-            if (input != null) {
-                //xeditor input
-                query = buildFormQuery(input.getRootElement());
+            if (queryString != null) {
+                query = buildComplexQuery(queryString);
+            } else if (searchString != null) {
+                query = buildDefaultQuery(searchString);
             } else {
-                if (queryString != null) {
-                    query = buildComplexQuery(queryString);
-                } else if (searchString != null) {
-                    query = buildDefaultQuery(searchString);
-                } else {
-                    query = buildNameValueQuery(request);
-                }
-
-                input = setQueryOptions(query, request);
+                query = buildNameValueQuery(request);
             }
+
+            input = setQueryOptions(query, request);
         }
 
         // Show incoming query document
@@ -526,8 +523,7 @@ public class MCRSearchServlet extends MCRServlet {
       * 
       * see its overwritten in jspdocportal
       */
-    protected void sendToLayout(HttpServletRequest req, HttpServletResponse res, Document jdom) throws IOException,
-        TransformerException, SAXException {
+    protected void sendToLayout(HttpServletRequest req, HttpServletResponse res, Document jdom) throws IOException {
         getLayoutService().doLayout(req, res, new MCRJDOMContent(jdom));
     }
 }

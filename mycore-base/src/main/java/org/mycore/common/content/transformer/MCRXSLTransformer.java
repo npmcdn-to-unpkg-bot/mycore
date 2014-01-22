@@ -33,7 +33,6 @@ import java.util.TooManyListenersException;
 import javax.xml.transform.Result;
 import javax.xml.transform.Templates;
 import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
@@ -45,12 +44,12 @@ import org.apache.log4j.Logger;
 import org.apache.xalan.trace.TraceManager;
 import org.apache.xalan.transformer.TransformerImpl;
 import org.mycore.common.MCRCache;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.common.config.MCRConfigurationException;
+import org.mycore.common.MCRConfiguration;
+import org.mycore.common.MCRConfigurationException;
+import org.mycore.common.MCRException;
 import org.mycore.common.content.MCRByteContent;
 import org.mycore.common.content.MCRContent;
 import org.mycore.common.content.streams.MCRByteArrayOutputStream;
-import org.mycore.common.xml.MCREntityResolver;
 import org.mycore.common.xml.MCRURIResolver;
 import org.mycore.common.xsl.MCRErrorListener;
 import org.mycore.common.xsl.MCRParameterCollector;
@@ -74,8 +73,6 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
 
     private static final MCRURIResolver URI_RESOLVER = MCRURIResolver.instance();
 
-    private static final MCREntityResolver ENTITY_RESOLVER = MCREntityResolver.instance();
-
     private static Logger LOGGER = Logger.getLogger(MCRXSLTransformer.class);
 
     private static MCRTraceListener TRACE_LISTENER = new MCRTraceListener();
@@ -85,8 +82,7 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
     private static MCRCache<String, MCRXSLTransformer> INSTANCE_CACHE = new MCRCache<String, MCRXSLTransformer>(100,
         "MCRXSLTransformer instance cache");
 
-    private static long CHECK_PERIOD = MCRConfiguration.instance().getLong("MCR.LayoutService.LastModifiedCheckPeriod",
-        60000);
+    private static long CHECK_PERIOD = MCRConfiguration.instance().getLong("MCR.LayoutService.LastModifiedCheckPeriod", 60000);
 
     /** The compiled XSL stylesheet */
     protected MCRTemplatesSource[] templateSources;
@@ -155,8 +151,7 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
                     SAXSource source = templateSources[i].getSource();
                     templates[i] = tFactory.newTemplates(source);
                     if (templates[i] == null) {
-                        throw new TransformerConfigurationException("XSLT Stylesheet could not be compiled: "
-                            + templateSources[i].getURL());
+                        throw new TransformerConfigurationException("XSLT Stylesheet could not be compiled: " + templateSources[i].getURL());
                     }
                     modified[i] = lastModified;
                 }
@@ -166,12 +161,12 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
     }
 
     @Override
-    public String getEncoding() throws TransformerException, SAXException {
+    public String getEncoding() {
         return getOutputProperty("encoding", "UTF-8");
     }
 
     @Override
-    public String getMimeType() throws TransformerException, SAXException {
+    public String getMimeType() {
         return getOutputProperty("media-type", "text/xml");
     }
 
@@ -201,12 +196,10 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
 
     @Override
     public void transform(MCRContent source, OutputStream out, MCRParameterCollector parameter) throws IOException {
-        MCRErrorListener el = null;
         try {
             LinkedList<TransformerHandler> transformHandlerList = getTransformHandlerList(parameter);
             XMLReader reader = getXMLReader(transformHandlerList);
             TransformerHandler lastTransformerHandler = transformHandlerList.getLast();
-            el = (MCRErrorListener) lastTransformerHandler.getTransformer().getErrorListener();
             StreamResult result = new StreamResult(out);
             lastTransformerHandler.setResult(result);
             reader.parse(source.getInputSource());
@@ -216,17 +209,11 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
             throw new IOException(e);
         } catch (SAXException e) {
             throw new IOException(e);
-        } catch (RuntimeException e) {
-            if (el != null && e.getCause() == null && el.getExceptionThrown() != null) {
-                //typically if a RuntimeException has no cause, we can get the "real cause" from MCRErrorListener, yeah!!!
-                throw new IOException(el.getExceptionThrown());
-            }
-            throw e;
         }
     }
 
-    protected MCRContent transform(MCRContent source, XMLReader reader, TransformerHandler transformerHandler)
-        throws IOException, SAXException {
+    protected MCRContent transform(MCRContent source, XMLReader reader, TransformerHandler transformerHandler) throws IOException,
+        SAXException {
         MCRByteArrayOutputStream baos = new MCRByteArrayOutputStream(INITIAL_BUFFER_SIZE);
         StreamResult serializer = new StreamResult(baos);
         transformerHandler.setResult(serializer);
@@ -240,12 +227,10 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
         throws TransformerConfigurationException, SAXException {
         checkTemplateUptodate();
         LinkedList<TransformerHandler> xslSteps = new LinkedList<TransformerHandler>();
-        //every transformhandler shares the same ErrorListener instance
-        MCRErrorListener errorListener = MCRErrorListener.getInstance();
         for (Templates template : templates) {
             TransformerHandler handler = tFactory.newTransformerHandler(template);
             parameterCollector.setParametersTo(handler.getTransformer());
-            handler.getTransformer().setErrorListener(errorListener);
+            handler.getTransformer().setErrorListener(MCRErrorListener.getInstance());
             if (TRACE_LISTENER_ENABLED) {
                 TransformerImpl transformer = (TransformerImpl) handler.getTransformer();
                 TraceManager traceManager = transformer.getTraceManager();
@@ -271,32 +256,35 @@ public class MCRXSLTransformer extends MCRParameterizedTransformer {
      */
     protected XMLReader getXMLReader(LinkedList<TransformerHandler> transformHandlerList) throws SAXException {
         XMLReader reader = XMLReaderFactory.createXMLReader();
-        reader.setEntityResolver(ENTITY_RESOLVER);
+        reader.setEntityResolver(URI_RESOLVER);
         reader.setContentHandler(transformHandlerList.getFirst());
         return reader;
     }
 
-    private String getOutputProperty(String propertyName, String defaultValue) throws TransformerException,
-        SAXException {
-        checkTemplateUptodate();
-        Templates lastTemplate = templates[templates.length - 1];
-        Properties outputProperties = lastTemplate.getOutputProperties();
-        if (outputProperties == null) {
-            return defaultValue;
+    private String getOutputProperty(String propertyName, String defaultValue) {
+        try {
+            checkTemplateUptodate();
+            Templates lastTemplate = templates[templates.length - 1];
+            Properties outputProperties = lastTemplate.getOutputProperties();
+            if (outputProperties == null) {
+                return defaultValue;
+            }
+            String value = outputProperties.getProperty(propertyName);
+            if (value == null) {
+                return defaultValue;
+            }
+            return value;
+        } catch (Exception e) {
+            throw new MCRException(e);
         }
-        String value = outputProperties.getProperty(propertyName);
-        if (value == null) {
-            return defaultValue;
-        }
-        return value;
     }
 
     /* (non-Javadoc)
      * @see org.mycore.common.content.transformer.MCRContentTransformer#getFileExtension()
      */
     @Override
-    public String getFileExtension() throws TransformerException, SAXException {
-        String fileExtension = super.fileExtension;
+    public String getFileExtension() {
+        String fileExtension = super.getFileExtension();
         if (fileExtension != null && !getDefaultExtension().equals(fileExtension)) {
             return fileExtension;
         }

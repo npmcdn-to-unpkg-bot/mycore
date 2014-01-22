@@ -27,7 +27,7 @@
       </xsl:if>
       <div class="viewer" onmousedown="return false;">
         <div class="surface" style="width:100%;height:100%;z-index:30" />
-        <div class="iview_well">
+        <div class="well">
         </div>
       </div>
       <script type="text/javascript">

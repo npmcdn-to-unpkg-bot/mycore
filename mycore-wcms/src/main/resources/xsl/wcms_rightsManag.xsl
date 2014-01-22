@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:i18n="xalan://org.mycore.services.i18n.MCRTranslation"
-    xmlns:layoutUtils="xalan:///org.mycore.frontend.MCRLayoutUtilities" xmlns:wcmsUtils="xalan:///org.mycore.frontend.wcms.MCRWCMSUtilities"
-    xmlns:encoder="xalan:///java.net.URLEncoder" exclude-result-prefixes="i18n wcmsUtils layoutUtils encoder">
+    xmlns:layoutUtils="xalan:///org.mycore.frontend.MCRLayoutUtilities" xmlns:wcmsUtils="xalan:///org.mycore.frontend.wcms.MCRWCMSUtilities">
     <xsl:include href="start-acl-editor.xsl" />
 
     <xsl:variable name="perm">
@@ -197,15 +196,12 @@
                                 <xsl:with-param name="action" select="'delete'" />
                             </xsl:call-template>
                         </xsl:variable>
-                        <xsl:variable name="objId" select="layoutUtils:getWebpageACLID(@href)" />
-                        <xsl:variable name="editPath" select="concat($WebApplicationBaseURL, 'rsc/ACLE/objectid?cmd=', 'edit', '&amp;objId=' , encoder:encode($objId, 'UTF-8'), '&amp;perm=', $perm,'&amp;redir=', encoder:encode($RequestURL, 'UTF-8'))" />
-                        <xsl:variable name="deletePath" select="concat($WebApplicationBaseURL, 'rsc/ACLE/objectid?cmd=', 'delete', '&amp;objId=' , encoder:encode($objId, 'UTF-8'), '&amp;perm=', $perm,'&amp;redir=', encoder:encode($RequestURL, 'UTF-8'))" />
-                        <a href="{$editPath}">
+                        <a href="{$aclEditorAddress_edit}">
                             <img width="18" height="13" src="{concat($WebApplicationBaseURL,'modules/wcms/aif/web/images/editRule.gif')}"
                                 title="{i18n:translate('wcms.rightsManag.acl.edit')}" alt="{i18n:translate('wcms.rightsManag.acl.edit')}" />
                         </a>
                         ,
-                        <a href="{$deletePath}">
+                        <a href="{$aclEditorAddress_delete}">
                             <img width="18" height="13" src="{concat($WebApplicationBaseURL,'modules/wcms/aif/web/images/deleteRule.gif')}"
                                 title="{i18n:translate('wcms.rightsManag.acl.delete')}" alt="{i18n:translate('wcms.rightsManag.acl.delete')}" />
                         </a>
@@ -218,9 +214,7 @@
                                 <xsl:with-param name="action" select="'add'" />
                             </xsl:call-template>
                         </xsl:variable>
-                        <xsl:variable name="objId" select="layoutUtils:getWebpageACLID(@href)" />
-                        <xsl:variable name="addPath" select="concat($WebApplicationBaseURL, 'rsc/ACLE/objectid?cmd=', 'add', '&amp;objId=' , encoder:encode($objId, 'UTF-8'), '&amp;perm=', $perm,'&amp;redir=', encoder:encode($RequestURL, 'UTF-8'))" />
-                        <a href="{$addPath}">
+                        <a href="{$aclEditorAddress_add}">
                             <img width="18" height="13" src="{concat($WebApplicationBaseURL,'modules/wcms/aif/web/images/addRule.gif')}"
                                 title="{i18n:translate('wcms.rightsManag.acl.add')}" alt="{i18n:translate('wcms.rightsManag.acl.add')}" />
                         </a>

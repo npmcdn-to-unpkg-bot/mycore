@@ -29,7 +29,7 @@ import javax.xml.transform.sax.SAXSource;
 
 import org.apache.log4j.Logger;
 import org.mycore.common.MCRCache;
-import org.mycore.common.xml.MCREntityResolver;
+import org.mycore.common.xml.MCRURIResolver;
 import org.mycore.common.xml.MCRXMLResource;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -61,11 +61,8 @@ public class MCRTemplatesSource {
     /** Have to use SAX here to resolve entities */
     public SAXSource getSource() throws SAXException {
         XMLReader reader = XMLReaderFactory.createXMLReader();
-        reader.setEntityResolver(MCREntityResolver.instance());
+        reader.setEntityResolver(MCRURIResolver.instance());
         URL resourceURL = MCRXSLTransformerFactory.class.getClassLoader().getResource(resource);
-        if (resourceURL == null) {
-            throw new SAXException("Could not find resource: " + resource);
-        }
         InputSource input = new InputSource(resourceURL.toString());
         return new SAXSource(reader, input);
     }
@@ -100,7 +97,6 @@ public class MCRTemplatesSource {
     }
 
     public MCRCache.ModifiedHandle getModifiedHandle(long checkPeriod) {
-        return MCRXMLResource.instance().getModifiedHandle(resource, MCRXSLTransformerFactory.class.getClassLoader(),
-            checkPeriod);
+        return MCRXMLResource.instance().getModifiedHandle(resource, MCRXSLTransformerFactory.class.getClassLoader(), checkPeriod);
     }
 }

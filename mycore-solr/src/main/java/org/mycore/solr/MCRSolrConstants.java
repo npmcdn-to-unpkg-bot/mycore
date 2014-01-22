@@ -23,7 +23,7 @@
 
 package org.mycore.solr;
 
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 
 /**
  * @author Thomas Scheffler (yagee)

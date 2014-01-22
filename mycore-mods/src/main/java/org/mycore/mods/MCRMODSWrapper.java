@@ -24,10 +24,8 @@ package org.mycore.mods;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.jdom2.Content;
 import org.jdom2.Element;
@@ -155,60 +153,19 @@ public class MCRMODSWrapper {
         return (element == null ? null : element.getTextTrim());
     }
 
-    /**
-     * Sets or adds an element with target name and value. The element name and attributes are used as xpath expression
-     * to filter for an element. The attributes are used with and operation if present.
-     *
-     * @param elementName
-     * @param elementValue
-     * @param attributes
-     */
-    public void setElement(String elementName, String elementValue, Map<String, String> attributes) {
-        boolean isAttributeDataPresent = attributes != null && !attributes.isEmpty();
-        StringBuilder xPath = new StringBuilder("mods:");
-        xPath.append(elementName);
-
-        // add attributes to xpath with and operator
-        if (isAttributeDataPresent) {
-
-            xPath.append("[");
-            Iterator<Map.Entry<String, String>> attributeIterator = attributes.entrySet().iterator();
-            while (attributeIterator.hasNext()) {
-                Map.Entry<String, String> attribute = attributeIterator.next();
-                xPath.append("@" + attribute.getKey() + "='" + attribute.getValue() + "']");
-
-                if (attributeIterator.hasNext())
-                    xPath.append(" and ");
-            }
-        }
-        Element element = getElement(xPath.toString());
+    public void setElement(String elementName, String attributeName, String attributeValue, String elementValue) {
+        String xPath = "mods:" + elementName + "[@" + attributeName + "='" + attributeValue + "']";
+        Element element = getElement(xPath);
 
         if (element == null) {
             element = addElement(elementName);
-            if (isAttributeDataPresent) {
-                for (Map.Entry<String, String> entry : attributes.entrySet())
-                    element.setAttribute(entry.getKey(), entry.getValue());
-            }
+            element.setAttribute(attributeName, attributeValue);
         }
 
         if (elementValue != null)
             element.setText(elementValue.trim());
         else
             element.detach();
-    }
-
-    public void setElement(String elementName, String attributeName, String attributeValue, String elementValue) {
-
-        Map<String, String> attributes = Collections.emptyMap();
-        if (attributeName != null && attributeValue != null) {
-            attributes = new HashMap<>();
-            attributes.put(attributeName, attributeValue);
-        }
-        setElement(elementName, elementValue, attributes);
-    }
-
-    public void setElement(String elementName, String elementValue) {
-        setElement(elementName, null, null, elementValue);
     }
 
     public Element addElement(String elementName) {
@@ -249,11 +206,6 @@ public class MCRMODSWrapper {
             Element element = selected.next();
             element.detach();
         }
-    }
-    
-    public void removeInheritedMetadata() {
-        String xPath="mods:relatedItem[@type='host']/*[local-name()!='part']";
-        removeElements(xPath);;
     }
 
     public String getServiceFlag(String type) {

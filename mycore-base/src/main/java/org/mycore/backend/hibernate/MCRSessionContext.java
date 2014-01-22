@@ -25,9 +25,9 @@ package org.mycore.backend.hibernate;
 
 import org.apache.log4j.Logger;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.context.internal.ThreadLocalSessionContext;
-import org.hibernate.engine.spi.SessionFactoryImplementor;
+import org.hibernate.context.CurrentSessionContext;
+import org.hibernate.context.ThreadLocalSessionContext;
+import org.hibernate.engine.SessionFactoryImplementor;
 import org.mycore.common.MCRSession;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.events.MCRSessionEvent;
@@ -42,8 +42,7 @@ import org.mycore.common.events.MCRSessionListener;
  * 
  * @author Thomas Scheffler (yagee)
  * 
- * @version $Revision$ $Date: 2011-04-05 10:52:04 +0200 (Di, 05 Apr
- *          2011) $
+ * @version $Revision$ $Date$
  * @since 2.0
  */
 public class MCRSessionContext extends ThreadLocalSessionContext implements MCRSessionListener {
@@ -52,11 +51,8 @@ public class MCRSessionContext extends ThreadLocalSessionContext implements MCRS
 
     private static final Logger LOGGER = Logger.getLogger(MCRSessionContext.class);
 
-    private SessionFactory factory;
-
     public MCRSessionContext(SessionFactoryImplementor factory) {
         super(factory);
-        this.factory = factory;
         MCRSessionMgr.addSessionListener(this);
     }
 
@@ -64,23 +60,23 @@ public class MCRSessionContext extends ThreadLocalSessionContext implements MCRS
         MCRSession mcrSession = event.getSession();
         Session currentSession;
         switch (event.getType()) {
-            case activated:
-                if (event.getConcurrentAccessors() <= 1) {
-                    LOGGER.debug("First Thread to access " + mcrSession);
-                }
-                break;
-            case passivated:
-                currentSession = unbind(factory);
-                autoCloseSession(currentSession);
-                break;
-            case destroyed:
-                currentSession = unbind(factory);
-                autoCloseSession(currentSession);
-                break;
-            case created:
-                break;
-            default:
-                break;
+        case activated:
+            if (event.getConcurrentAccessors() <= 1) {
+                LOGGER.debug("First Thread to access " + mcrSession);
+            }
+            break;
+        case passivated:
+            currentSession = unbind(factory);
+            autoCloseSession(currentSession);
+            break;
+        case destroyed:
+            currentSession = unbind(factory);
+            autoCloseSession(currentSession);
+            break;
+        case created:
+            break;
+        default:
+            break;
         }
     }
 
@@ -95,10 +91,10 @@ public class MCRSessionContext extends ThreadLocalSessionContext implements MCRS
     }
 
     @Override
-    protected Session buildOrObtainSession() {
+    protected org.hibernate.classic.Session buildOrObtainSession() {
         // creates a new one
         LOGGER.debug("Obtaining new hibernate Session.");
-        Session session = super.buildOrObtainSession();
+        org.hibernate.classic.Session session = super.buildOrObtainSession();
         LOGGER.debug("Returning session with transaction: " + session.getTransaction());
         return session;
     }
@@ -114,8 +110,8 @@ public class MCRSessionContext extends ThreadLocalSessionContext implements MCRS
     }
 
     @Override
-    protected ThreadLocalSessionContext.CleanupSync buildCleanupSynch() {
-        return new ThreadLocalSessionContext.CleanupSync(factory) {
+    protected CleanupSynch buildCleanupSynch() {
+        return new CleanupSynch(factory) {
             private static final long serialVersionUID = -7894370437708819993L;
 
             @Override

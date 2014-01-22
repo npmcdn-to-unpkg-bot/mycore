@@ -30,7 +30,6 @@ import java.util.Collections;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.TransformerException;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
@@ -40,7 +39,6 @@ import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.datamodel.common.MCRLinkTableManager;
 import org.mycore.services.fieldquery.MCRHit;
 import org.mycore.services.fieldquery.MCRResults;
-import org.xml.sax.SAXException;
 
 /**
  * This servlet return the corresponding link value (from / to) for the
@@ -139,10 +137,8 @@ public class MCRLinkServlet extends MCRServlet {
      * Forwards the document to the output
      * 
      * see its overwritten in jspdocportal
-     * @throws SAXException 
-     * @throws TransformerException 
      */
-    protected void sendToLayout(HttpServletRequest req, HttpServletResponse res, Document jdom) throws IOException, TransformerException, SAXException {
+    protected void sendToLayout(HttpServletRequest req, HttpServletResponse res, Document jdom) throws IOException {
         getLayoutService().doLayout(req, res, new MCRJDOMContent(jdom));
     }
 

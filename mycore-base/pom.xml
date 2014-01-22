@@ -3,7 +3,7 @@
   <parent>
     <artifactId>mycore</artifactId>
     <groupId>org.mycore</groupId>
-    <version>2014.02-SNAPSHOT</version>
+    <version>2013.06.0.2</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -235,6 +235,10 @@
       <artifactId>log4j</artifactId>
     </dependency>
     <dependency>
+      <groupId>dom4j</groupId>
+      <artifactId>dom4j</artifactId>
+    </dependency>
+    <dependency>
       <groupId>commons-lang</groupId>
       <artifactId>commons-lang</artifactId>
     </dependency>
@@ -316,7 +320,7 @@
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
+      <artifactId>servlet-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.hibernate</groupId>
@@ -329,6 +333,10 @@
     <dependency>
       <groupId>org.hsqldb</groupId>
       <artifactId>hsqldb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.ehcache</groupId>
+      <artifactId>ehcache-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -361,11 +369,6 @@
     <dependency>
       <groupId>javax.annotation</groupId>
       <artifactId>jsr250-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>xml-resolver</groupId>
-      <artifactId>xml-resolver</artifactId>
-      <scope>runtime</scope>
     </dependency>
   </dependencies>
 </project>

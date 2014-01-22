@@ -23,7 +23,6 @@
 package org.mycore.datamodel.language;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -42,9 +41,6 @@ public class MCRLanguage {
      * A map of labels for this language, by language 
      */
     private Map<MCRLanguage, String> labelsByLanguage = new HashMap<MCRLanguage, String>();
-    
-    
-    private Locale locale;
 
     /**
      * Language instances are created by the package itself, do not use on your own, use MCRLanguageFactory instead.
@@ -120,13 +116,5 @@ public class MCRLanguage {
     @Override
     public String toString() {
         return getCode(MCRLanguageCodeType.xmlCode);
-    }
-
-    public Locale getLocale() {
-        return locale;
-    }
-
-    void setLocale(Locale locale) {
-        this.locale = locale;
     }
 }

@@ -17,26 +17,16 @@
       require(["dojo/ready"], function(ready) {
         ready(function() {
           require([
-            "dojo/promise/all", "dijit/registry", "dojo/dom", "dojo/dom-construct", "dojo/query", "mycore/util/DOMUtil", "dojo/parser", "mycore/classification/Editor"
-          ], function(all, registry, dom, domConstruct, query, domUtil) {
+            "dojo/promise/all", "dijit/registry", "dojo/dom-construct", "mycore/util/DOMUtil", "dojo/parser", "mycore/classification/Editor"
+          ], function(all, registry, domConstruct, domUtil) {
             ready(function() {
               domUtil.updateBodyTheme();
-              var preloadCSS = [
-                domUtil.loadCSS("///ajax.googleapis.com/ajax/libs/dojo/"+classeditor.dojoVersion +"/dijit/themes/claro/claro.css"),
-                domUtil.loadCSS(classeditor.settings.cssURL + "/classificationEditor.css"),
-                domUtil.loadCSS(classeditor.settings.cssURL + "/mycore.dojo.css")
-              ];
-              // check if font-awesome is already loaded
-              if(query("link[href*='font-awesome']").length == 0) {
-                preloadCSS.push(domUtil.loadCSS(classeditor.settings.cssURL + "/font-awesome.min.css"));
-              }
-              all(preloadCSS).then(function() {
+              all([domUtil.loadCSS("http://ajax.googleapis.com/ajax/libs/dojo/"+classeditor.dojoVersion +"/dijit/themes/claro/claro.css"),
+                   domUtil.loadCSS(classeditor.settings.cssURL + "/classificationEditor.css"),
+                   domUtil.loadCSS(classeditor.settings.cssURL + "/mycore.dojo.css"),
+                   domUtil.loadCSS(classeditor.settings.cssURL + "/modern-pictograms.css")]).then(function() {
                 var classEditor = new mycore.classification.Editor({settings: classeditor.settings});
-                var wrapper = dom.byId("classificationEditorWrapper");
-                if(wrapper == null) {
-                  console.log("Unable to find element with id: 'classificationEditorWrapper'.");
-                }
-                domConstruct.place(classEditor.domNode, wrapper);
+                domConstruct.place(classEditor.domNode, dojo.byId("classificationEditorWrapper"));
                 classEditor.loadClassification(classeditor.classId, classeditor.categoryId);
                 classEditor.startup();
               });

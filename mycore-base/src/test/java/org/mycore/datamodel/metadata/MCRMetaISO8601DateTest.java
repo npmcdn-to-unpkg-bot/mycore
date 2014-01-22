@@ -31,7 +31,6 @@ import static org.junit.Assert.assertNull;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Date;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
@@ -40,9 +39,8 @@ import org.jdom2.output.XMLOutputter;
 import org.joda.time.format.DateTimeFormatter;
 import org.junit.Before;
 import org.junit.Test;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRTestCase;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.datamodel.common.MCRISO8601Date;
 import org.mycore.datamodel.common.MCRISO8601Format;
 import org.mycore.datamodel.common.MCRISO8601FormatChooser;
 
@@ -60,6 +58,10 @@ public class MCRMetaISO8601DateTest extends MCRTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();//org.mycore.datamodel.metadata.MCRMetaISO8601Date
+        if (setProperty("log4j.logger.org.mycore.datamodel.metadata.MCRMetaISO8601Date", "INFO", false)) {
+            //DEBUG will print a Stacktrace if we test for errors, but that's O.K.
+            MCRConfiguration.instance().configureLogging();
+        }
         if (LOGGER == null) {
             LOGGER = Logger.getLogger(MCRMetaISO8601DateTest.class);
         }
@@ -69,52 +71,52 @@ public class MCRMetaISO8601DateTest extends MCRTestCase {
     public void formatChooser() {
         // test year
         String duration = "-16";
-        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.YEAR_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.YEAR_FORMAT), getFormat(MCRISO8601FormatChooser
+                .getFormatter(duration, null)));
         duration = "2006";
-        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.YEAR_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.YEAR_FORMAT), getFormat(MCRISO8601FormatChooser
+                .getFormatter(duration, null)));
         // test year-month
         duration = "2006-01";
-        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.YEAR_MONTH_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.YEAR_MONTH_FORMAT), getFormat(MCRISO8601FormatChooser
+                .getFormatter(duration, null)));
         // test complete
         duration = "2006-01-18";
-        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_FORMAT), getFormat(MCRISO8601FormatChooser
+                .getFormatter(duration, null)));
         // test complete with hour and minutes
         duration = "2006-01-18T11:08Z";
-        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_FORMAT), getFormat(MCRISO8601FormatChooser
+                .getFormatter(duration, null)));
         duration = "2006-01-18T11:08+02:00";
-        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+        assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_FORMAT), getFormat(MCRISO8601FormatChooser
+                .getFormatter(duration, null)));
         // test complete with hour, minutes and seconds
         duration = "2006-01-18T11:08:20Z";
         assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+                getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
         duration = "2006-01-18T11:08:20+02:00";
         assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+                getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
         // test complete with hour, minutes, seconds and fractions of a second
         duration = "2006-01-18T11:08:20.1Z";
         assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_SSS_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+                getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
         duration = "2006-01-18T11:08:20.12Z";
         assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_SSS_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+                getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
         duration = "2006-01-18T11:08:20.123Z";
         assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_SSS_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+                getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
         duration = "2006-01-18T11:08:20.1+02:00";
         assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_SSS_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+                getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
         duration = "2006-01-18T11:08:20.12+02:00";
         assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_SSS_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+                getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
         duration = "2006-01-18T11:08:20.123+02:00";
         assertEquals(duration + " test failed", getFormat(MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_SSS_FORMAT),
-            getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
+                getFormat(MCRISO8601FormatChooser.getFormatter(duration, null)));
     }
 
     /*
@@ -151,8 +153,8 @@ public class MCRMetaISO8601DateTest extends MCRTestCase {
         ts.setFormat((String) null);
         ts.setDate(timeString);
         assertNull("Date is not null", ts.getDate());
-        MCRConfiguration.instance().set("MCR.Metadata.SimpleDateFormat.StrictParsing", "false");
-        MCRConfiguration.instance().set("MCR.Metadata.SimpleDateFormat.Locales", "de_DE,en_US");
+        setProperty("MCR.Metadata.SimpleDateFormat.StrictParsing", "false", true);
+        setProperty("MCR.Metadata.SimpleDateFormat.Locales", "de_DE,en_US", true);
         ts.setFormat((String) null);
         ts.setDate(timeString);
         LOGGER.debug(ts.getISOString());
@@ -160,6 +162,7 @@ public class MCRMetaISO8601DateTest extends MCRTestCase {
         ts.setDate(timeString);
         LOGGER.debug(ts.getISOString());
         //assertNotNull("Date is null", ts.getDate());
+        setProperty("MCR.Metadata.SimpleDateFormat.StrictParsing", "true", true);
     }
 
     /*
@@ -227,33 +230,21 @@ public class MCRMetaISO8601DateTest extends MCRTestCase {
 
     private String getFormat(DateTimeFormatter df) {
         if (df == null || df == MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_SSS_FORMAT
-            || df == MCRISO8601FormatChooser.UTC_COMPLETE_HH_MM_SS_SSS_FORMAT) {
+                || df == MCRISO8601FormatChooser.UTC_COMPLETE_HH_MM_SS_SSS_FORMAT) {
             return MCRISO8601Format.COMPLETE_HH_MM_SS_SSS.toString();
-        } else if (df == MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_FORMAT
-            || df == MCRISO8601FormatChooser.UTC_COMPLETE_HH_MM_SS_FORMAT) {
+        } else if (df == MCRISO8601FormatChooser.COMPLETE_HH_MM_SS_FORMAT || df == MCRISO8601FormatChooser.UTC_COMPLETE_HH_MM_SS_FORMAT) {
             return MCRISO8601Format.COMPLETE_HH_MM_SS.toString();
-        } else if (df == MCRISO8601FormatChooser.COMPLETE_HH_MM_FORMAT
-            || df == MCRISO8601FormatChooser.UTC_COMPLETE_HH_MM_FORMAT) {
+        } else if (df == MCRISO8601FormatChooser.COMPLETE_HH_MM_FORMAT || df == MCRISO8601FormatChooser.UTC_COMPLETE_HH_MM_FORMAT) {
             return MCRISO8601Format.COMPLETE_HH_MM.toString();
         } else if (df == MCRISO8601FormatChooser.COMPLETE_FORMAT || df == MCRISO8601FormatChooser.UTC_COMPLETE_FORMAT) {
             return MCRISO8601Format.COMPLETE.toString();
-        } else if (df == MCRISO8601FormatChooser.YEAR_MONTH_FORMAT
-            || df == MCRISO8601FormatChooser.UTC_YEAR_MONTH_FORMAT) {
+        } else if (df == MCRISO8601FormatChooser.YEAR_MONTH_FORMAT || df == MCRISO8601FormatChooser.UTC_YEAR_MONTH_FORMAT) {
             return MCRISO8601Format.YEAR_MONTH.toString();
         } else if (df == MCRISO8601FormatChooser.YEAR_FORMAT || df == MCRISO8601FormatChooser.UTC_YEAR_FORMAT) {
             return MCRISO8601Format.YEAR.toString();
         } else {
             return MCRISO8601Format.COMPLETE_HH_MM_SS_SSS.toString();
         }
-    }
-
-    @Override
-    protected Map<String, String> getTestProperties() {
-        Map<String, String> testProperties = super.getTestProperties();
-        testProperties.put(MCRISO8601Date.PROPERTY_STRICT_PARSING, "true");
-        testProperties.put("log4j.logger.org.mycore.datamodel.metadata.MCRMetaISO8601Date", "INFO");
-
-        return testProperties;
     }
 
 }

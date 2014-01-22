@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.mycore.solr.MCRSolrServerFactory;
 import org.mycore.solr.index.MCRSolrIndexHandler;
 
@@ -56,12 +55,6 @@ public abstract class MCRSolrAbstractIndexHandler implements MCRSolrIndexHandler
     @Override
     public int getDocuments() {
         return 1;
-    }
-
-    protected UpdateRequest getUpdateRequest(String path) {
-        UpdateRequest req = path != null ? new UpdateRequest(path) : new UpdateRequest();
-        req.setCommitWithin(getCommitWithin());
-        return req;
     }
 
 }

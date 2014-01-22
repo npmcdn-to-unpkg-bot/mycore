@@ -24,7 +24,6 @@
 package org.mycore.services.fieldquery;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -33,8 +32,8 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.output.DOMOutputter;
+import org.mycore.common.MCRConfigurationException;
 import org.mycore.common.MCRException;
-import org.mycore.common.config.MCRConfigurationException;
 import org.mycore.common.xml.MCRURIResolver;
 
 /**
@@ -48,17 +47,19 @@ public class MCRQueryClient {
     private final static Logger LOGGER = Logger.getLogger(MCRQueryClient.class);
 
     /** A list containing the aliases of all hosts */
-    public final static List<String> ALL_HOSTS = new ArrayList<String>();
+    public final static List<String> ALL_HOSTS;
 
     /** A map from host alias to classes for access types */
     private static Properties accessclass = new Properties();
 
     static {
         // Read hosts.xml configuration file
-        Element hostsXML = MCRURIResolver.instance().resolve("resource:hosts.xml");
+        Element hosts = MCRURIResolver.instance().resolve("resource:hosts.xml");
 
-        List<Element> hosts = ( hostsXML == null ? Collections.<Element> emptyList() : hostsXML.getChildren() );
-        for (Element host : hosts) {
+        ALL_HOSTS = new ArrayList<String>();
+        List children = hosts.getChildren();
+        for (Object aChildren : children) {
+            Element host = (Element) aChildren;
             String classname = host.getAttributeValue("class");
             if (classname == null || (classname = classname.trim()).length() == 0) {
                 classname = "org.mycore.services.fieldquery.MCRQueryClientWebService";

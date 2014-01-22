@@ -27,12 +27,13 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Iterator;
+import java.util.Properties;
 
 import org.apache.log4j.Logger;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.datamodel.ifs.MCRFileContentType;
 
 /**
@@ -44,10 +45,13 @@ public class TextFilterPluginManager {
     /** The logger */
     private static final Logger LOGGER = Logger.getLogger(TextFilterPluginManager.class);
 
-    /** Pluginbasket */
-    private static Hashtable<MCRFileContentType, TextFilterPlugin> CONTENT_TYPE_PLUGIN_BAG = null;
+    /** The configuration */
+    private static final MCRConfiguration CONF = MCRConfiguration.instance();
 
-    private static Hashtable<String, TextFilterPlugin> PLUGINS = null;
+    /** Pluginbasket */
+    private static Hashtable CONTENT_TYPE_PLUGIN_BAG = null;
+
+    private static Hashtable PLUGINS = null;
 
     /** initialized */
     private static TextFilterPluginManager SINGLETON;
@@ -68,8 +72,8 @@ public class TextFilterPluginManager {
     }
 
     private void init() {
-        CONTENT_TYPE_PLUGIN_BAG = new Hashtable<MCRFileContentType, TextFilterPlugin>();
-        PLUGINS = new Hashtable<String, TextFilterPlugin>();
+        CONTENT_TYPE_PLUGIN_BAG = new Hashtable();
+        PLUGINS = new Hashtable();
         loadPlugins();
     }
 
@@ -80,23 +84,34 @@ public class TextFilterPluginManager {
     public void loadPlugins() {
         MCRConfiguration config = MCRConfiguration.instance();
         String prefix = "MCR.TextFilterPlugin.";
-        Map<String, String> props = config.getPropertiesMap(prefix);
+        Properties props = config.getProperties(prefix);
+        if (props == null) {
+            return;
+        }
 
-        for (Entry<String, String> entry : props.entrySet()) {
+        TextFilterPlugin filter = null;
+        MCRFileContentType ct;
+
+        Enumeration e = props.propertyNames();
+        while (e.hasMoreElements()) {
+            String propertyName = (String) e.nextElement();
             try {
-                TextFilterPlugin filter = config.getInstanceOf(entry.getKey());
-                if (null != filter) {
-                    LOGGER.info(entry.getKey() + "Loading TextFilterPlugin: " + filter.getName() + " v:"
-                        + filter.getMajorNumber() + '.' + filter.getMinorNumber());
-                    for (MCRFileContentType ct : filter.getSupportedContentTypes()) {
+                Object o = config.getInstanceOf(propertyName);
+                if (null != o) {
+                    filter = (TextFilterPlugin) o;
+                    LOGGER.info(propertyName + "Loading TextFilterPlugin: " + filter.getName() + " v:" + filter.getMajorNumber() + '.' + filter.getMinorNumber());
+                    for (Object o1 : filter.getSupportedContentTypes()) {
                         // Add MIME Type filters to the basket
-                        CONTENT_TYPE_PLUGIN_BAG.put(ct, filter);
+                        ct = (MCRFileContentType) o1;
+
+                        if (ct != null) {
+                            CONTENT_TYPE_PLUGIN_BAG.put(ct, filter);
+                        }
                     }
 
                     PLUGINS.put(filter.getClass().getName(), filter);
                 } else {
-                    LOGGER.info("TextFilterPlugin not available: " + entry.getKey() + " with property: "
-                        + entry.getValue());
+                    LOGGER.info("TextFilterPlugin not available: " + propertyName + " with property: " + props.getProperty(propertyName));
                 }
             } catch (Exception e1) {
                 LOGGER.info(e1.toString());
@@ -129,7 +144,7 @@ public class TextFilterPluginManager {
      * 
      * @return a Collection of Plugins
      */
-    public Collection<TextFilterPlugin> getPlugins() {
+    public Collection getPlugins() {
         return PLUGINS.values();
     }
 
@@ -141,7 +156,7 @@ public class TextFilterPluginManager {
      * @return corresponding TextFilterPlugin or null if MIME is emtpy or null
      */
     public TextFilterPlugin getPlugin(MCRFileContentType ct) {
-        return ct == null ? null : CONTENT_TYPE_PLUGIN_BAG.get(ct);
+        return ct == null ? null : (TextFilterPlugin) CONTENT_TYPE_PLUGIN_BAG.get(ct);
     }
 
     /**

@@ -23,7 +23,6 @@
 
 package org.mycore.common.xml;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -33,13 +32,10 @@ import java.net.URLEncoder;
 import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
 
 import javax.activation.MimetypesFileTypeMap;
 import javax.xml.parsers.DocumentBuilder;
@@ -58,9 +54,7 @@ import org.jdom2.JDOMException;
 import org.jdom2.output.DOMOutputter;
 import org.mycore.backend.hibernate.MCRHIBConnection;
 import org.mycore.backend.hibernate.tables.MCRURN;
-import org.mycore.common.MCRCache;
-import org.mycore.common.MCRCache.ModifiedHandle;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.common.MCRSystemUserInformation;
 import org.mycore.datamodel.classifications2.MCRCategLinkReference;
@@ -69,7 +63,6 @@ import org.mycore.datamodel.classifications2.MCRCategLinkServiceFactory;
 import org.mycore.datamodel.classifications2.MCRCategoryID;
 import org.mycore.datamodel.common.MCRISO8601Date;
 import org.mycore.datamodel.common.MCRLinkTableManager;
-import org.mycore.datamodel.common.MCRXMLMetadataManager;
 import org.mycore.datamodel.metadata.MCRDerivate;
 import org.mycore.datamodel.metadata.MCRMetaLinkID;
 import org.mycore.datamodel.metadata.MCRMetadataManager;
@@ -85,7 +78,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 /**
  * @author Thomas Scheffler (yagee)
@@ -93,15 +85,6 @@ import org.xml.sax.SAXException;
  * @author shermann
  */
 public class MCRXMLFunctions {
-
-    //use holder to not initialize MCRXMLMetadataManager to early (simplifies junit testing)
-    private static class MCRXMLMetaDataManagerHolder {
-        public static final MCRXMLMetadataManager instance = MCRXMLMetadataManager.instance();
-    }
-
-    private static class MCRCategLinkServiceHolder {
-        public static final MCRCategLinkService instance = MCRCategLinkServiceFactory.getInstance();
-    }
 
     static MCRConfiguration CONFIG = MCRConfiguration.instance();
 
@@ -121,7 +104,7 @@ public class MCRXMLFunctions {
 
     private static final Logger LOGGER = Logger.getLogger(MCRXMLFunctions.class);
 
-    private static MCRCache<String, Boolean> DISPLAY_DERIVATE_CACHE = new MCRCache<>(10000, "Derivate display value cache");
+    private static final MCRCategLinkService LINK_SERVICE = MCRCategLinkServiceFactory.getInstance();
 
     private static final DocumentBuilder DOC_BUILDER;
     static {
@@ -170,8 +153,10 @@ public class MCRXMLFunctions {
 
     public static StringBuffer getBaseLink(String hostAlias) {
         StringBuffer returns = new StringBuffer();
-        returns.append(CONFIG.getString(HOST_PREFIX + hostAlias + PROTOCOLL_SUFFIX, "http")).append("://")
-                .append(CONFIG.getString(HOST_PREFIX + hostAlias + HOST_SUFFIX));
+        returns
+            .append(CONFIG.getString(HOST_PREFIX + hostAlias + PROTOCOLL_SUFFIX, "http"))
+            .append("://")
+            .append(CONFIG.getString(HOST_PREFIX + hostAlias + HOST_SUFFIX));
         String port = CONFIG.getString(HOST_PREFIX + hostAlias + PORT_SUFFIX, DEFAULT_PORT);
         if (!port.equals(DEFAULT_PORT)) {
             returns.append(":").append(port);
@@ -186,8 +171,13 @@ public class MCRXMLFunctions {
     public static String formatISODate(String isoDate, String isoFormat, String simpleFormat, String iso639Language) throws ParseException {
         if (LOGGER.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("isoDate=");
-            sb.append(isoDate).append(", simpleFormat=").append(simpleFormat).append(", isoFormat=").append(isoFormat)
-                    .append(", iso649Language=").append(iso639Language);
+            sb.append(isoDate)
+                .append(", simpleFormat=")
+                .append(simpleFormat)
+                .append(", isoFormat=")
+                .append(isoFormat)
+                .append(", iso649Language=")
+                .append(iso639Language);
             LOGGER.debug(sb.toString());
         }
         Locale locale = new Locale(iso639Language);
@@ -222,18 +212,6 @@ public class MCRXMLFunctions {
 
     public static String getISODate(String simpleDate, String simpleFormat) throws ParseException {
         return getISODate(simpleDate, simpleFormat, null);
-    }
-
-    public static String getISODateFromMCRHistoryDate(String simpleDate) throws ParseException {
-        String[] dates = simpleDate.split("\\.");
-        if (dates[2].endsWith("BC")) {
-            dates[2] = dates[2].replace(" BC", "");
-            dates[2] = "-" + dates[2];
-        } else {
-            dates[2] = dates[2].replace(" AD", "");
-        }
-        String Date = dates[2] + "-" + dates[1] + "-" + dates[0] + "T00:00:00.000Z";
-        return Date;
     }
 
     /**
@@ -464,7 +442,7 @@ public class MCRXMLFunctions {
         } catch (Exception e) {
             URL testURL = new URL(url);
             URI uri = new URI(testURL.getProtocol(), testURL.getUserInfo(), testURL.getHost(), testURL.getPort(), testURL.getPath(),
-                    testURL.getQuery(), testURL.getRef());
+                testURL.getQuery(), testURL.getRef());
             return uri.toASCIIString();
         }
     }
@@ -495,34 +473,21 @@ public class MCRXMLFunctions {
 
     public static boolean isDisplayedEnabledDerivate(String derivateId) {
         MCRObjectID derId = MCRObjectID.getInstance(derivateId);
-        ModifiedHandle modifiedHandle = MCRXMLMetaDataManagerHolder.instance.getLastModifiedHandle(derId, 30, TimeUnit.SECONDS);
-        Boolean result;
-        try {
-            result = DISPLAY_DERIVATE_CACHE.getIfUpToDate(derivateId, modifiedHandle);
-        } catch (IOException e) {
-            LOGGER.warn("Error while determining when " + derId + " was last modified.", e);
+
+        if (!MCRMetadataManager.exists(derId)) {
+            LOGGER.error("Derivate \"" + derivateId + "\" does not exist");
             return false;
         }
-        if (result != null) {
-            return result;
-        }
-        MCRDerivate der;
-        try {
-            org.jdom2.Document derDoc = MCRXMLMetaDataManagerHolder.instance.retrieveXML(derId);
-            if (derDoc == null) {
-                LOGGER.error("Derivate \"" + derId + "\" does not exist");
-                return false;
-            }
-            der = new MCRDerivate(derDoc);
-        } catch (SAXException | JDOMException | IOException | RuntimeException e) {
-            LOGGER.warn("Error while loading derivate: " + derId, e);
-            return false;
-        }
+
+        MCRDerivate der = MCRMetadataManager.retrieveMCRDerivate(derId);
+
         org.jdom2.Element derivateElem = der.getDerivate().createXML();
-        String display = derivateElem.getAttributeValue("display", "true");
-        Boolean returnValue = Boolean.valueOf(display);
-        DISPLAY_DERIVATE_CACHE.put(derivateId, returnValue);
-        return returnValue;
+        String display = derivateElem.getAttributeValue("display");
+        if (display == null) {
+            display = "true";
+        }
+
+        return Boolean.valueOf(display);
     }
 
     /**
@@ -569,7 +534,7 @@ public class MCRXMLFunctions {
             }
         }
         LOGGER.info("URN assignment disabled as the object type " + givenType + " is not in the list of allowed objects. See property \""
-                + propertyName + "\"");
+            + propertyName + "\"");
         return false;
     }
 
@@ -721,7 +686,7 @@ public class MCRXMLFunctions {
             MCRCategoryID categID = MCRCategoryID.fromString(categoryId);
             MCRObjectID mcrObjectID = MCRObjectID.getInstance(objectId);
             MCRCategLinkReference reference = new MCRCategLinkReference(mcrObjectID);
-            return MCRCategLinkServiceHolder.instance.isInCategory(reference, categID);
+            return LINK_SERVICE.isInCategory(reference, categID);
         } catch (Throwable e) {
             LOGGER.error("Error while checking if object is in category", e);
             return false;
@@ -756,7 +721,7 @@ public class MCRXMLFunctions {
      * Same as {@link MCRMetadataManager#getObjectId(MCRObjectID, long)} with String representation.
      */
     public static String getMCRObjectID(final String derivateID, final long expire) {
-        return MCRMetadataManager.getObjectId(MCRObjectID.getInstance(derivateID), expire, TimeUnit.MILLISECONDS).toString();
+        return MCRMetadataManager.getObjectId(MCRObjectID.getInstance(derivateID), expire).toString();
     }
 
     /**
@@ -784,32 +749,34 @@ public class MCRXMLFunctions {
         }
 
         // get the parameters from mycore.properties
-        List<String> importList = Collections.emptyList();
-        importList = MCRConfiguration.instance().getStrings("MCR.URIResolver.xslImports." + includePart, importList);
-        if (importList.isEmpty()) {
-            LOGGER.info("MCR.URIResolver.xslImports." + includePart + " has no Stylesheets defined");
-        } else {
-            ListIterator<String> listIterator = importList.listIterator(importList.size());
+        String propValue = MCRConfiguration.instance().getString("MCR.URIResolver.xslImports." + includePart, "").trim();
+        if (!propValue.isEmpty()) {
+            String[] includes = propValue.split(",");
             String importXSL = null;
-            if (selfName == null && listIterator.hasPrevious()) {
-                importXSL = listIterator.previous();
-            }
-            while (listIterator.hasPrevious() && importXSL == null) {
-                String currentStylesheet = listIterator.previous();
-                if (currentStylesheet.equals(selfName)) {
-                    if (listIterator.hasPrevious()) {
-                        importXSL = listIterator.previous();
-                    } else {
-                        LOGGER.debug("xslImport reached end of chain:" + importList);
+            int pos = -1;
+            if (selfName == null) {
+                importXSL = includes[0];
+            } else {
+                for (int i = 0; i < includes.length; i++) {
+                    if (includes[i].equals(selfName)) {
+                        pos = i + 1;
+                        break;
                     }
-                    break;
                 }
-                //continue;
+                if (pos < includes.length && pos > 0) {
+                    importXSL = includes[pos];
+                }
             }
             if (importXSL != null) {
                 return importXSL;
             }
-            LOGGER.warn("xslImport could not find " + selfName + " in " + importList);
+            if (pos >= 0) {
+                LOGGER.debug("xslImport reached end of chain:" + propValue);
+            } else {
+                LOGGER.warn("xslImport could not find " + selfName + " in " + propValue);
+            }
+        } else {
+            LOGGER.info("MCR.URIResolver.xslImports." + includePart + " has no Stylesheets defined");
         }
         return "";
     }
@@ -829,11 +796,6 @@ public class MCRXMLFunctions {
             return text;
         }
         return text.substring(0, i) + "...";
-    }
-
-    public static String shortenPersonLabel(String text) {
-        int pos = text.indexOf("(");
-        return text.substring(0, pos - 1);
     }
 
 }

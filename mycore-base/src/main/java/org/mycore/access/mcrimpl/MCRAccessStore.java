@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 import org.apache.log4j.Logger;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.datamodel.common.MCRXMLMetadataManager;
 
 /**
@@ -44,6 +44,8 @@ import org.mycore.datamodel.common.MCRXMLMetadataManager;
  * @version $Revision$ $Date$
  */
 public abstract class MCRAccessStore {
+    public abstract void createTables();
+
     public abstract String getRuleID(String objID, String ACPool);
 
     public abstract void createAccessDefinition(MCRRuleMapping accessdata);

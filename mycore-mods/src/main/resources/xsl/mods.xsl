@@ -87,7 +87,6 @@
           <xsl:variable name="date">
             <xsl:call-template name="formatISODate">
               <xsl:with-param select="$mcrobj/service/servdates/servdate[@type='modifydate']" name="date" />
-              <xsl:with-param select="i18n:translate('metaData.date')" name="format" />
             </xsl:call-template>
           </xsl:variable>
           <xsl:value-of select="i18n:translate('results.lastChanged',$date)" />

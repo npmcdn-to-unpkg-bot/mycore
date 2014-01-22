@@ -30,7 +30,6 @@ import java.sql.SQLException;
 import java.sql.Types;
 
 import org.hibernate.HibernateException;
-import org.hibernate.engine.spi.SessionImplementor;
 import org.hibernate.usertype.UserType;
 
 /**
@@ -39,7 +38,7 @@ import org.hibernate.usertype.UserType;
  * @author Ren\u00E9 Adler
  */
 public class MCRJobActionUserType implements UserType {
-
+    
     @SuppressWarnings("unchecked")
     private Class<? extends MCRJobAction> getActionFromString(String action) throws HibernateException {
         Class<? extends MCRJobAction> clazz = null;
@@ -83,6 +82,22 @@ public class MCRJobActionUserType implements UserType {
     }
 
     @Override
+    public Object nullSafeGet(ResultSet rs, String[] names, Object owner) throws HibernateException, SQLException {
+        String action = rs.getString(names[0]);
+        return rs.wasNull() ? null : getActionFromString(action);
+    }
+
+    @SuppressWarnings({ "unchecked" })
+    @Override
+    public void nullSafeSet(PreparedStatement st, Object value, int index) throws HibernateException, SQLException {
+        if (value == null) {
+            st.setNull(index, Types.VARCHAR);
+        } else {
+            st.setString(index, ((Class<? extends MCRJobAction>) value).getName());
+        }
+    }
+
+    @Override
     public Object replace(Object original, Object target, Object owner) throws HibernateException {
         return original;
     }
@@ -96,24 +111,5 @@ public class MCRJobActionUserType implements UserType {
     @Override
     public int[] sqlTypes() {
         return new int[] { Types.VARCHAR };
-    }
-
-    @Override
-    public Object nullSafeGet(ResultSet rs, String[] names, SessionImplementor session, Object owner)
-        throws HibernateException, SQLException {
-        String action = rs.getString(names[0]);
-        return rs.wasNull() ? null : getActionFromString(action);
-    }
-
-    @Override
-    public void nullSafeSet(PreparedStatement st, Object value, int index, SessionImplementor session)
-        throws HibernateException, SQLException {
-        if (value == null) {
-            st.setNull(index, Types.VARCHAR);
-        } else {
-            @SuppressWarnings("unchecked")
-            Class<? extends MCRJobAction> jobAction = (Class<? extends MCRJobAction>) value;
-            st.setString(index, jobAction.getName());
-        }
     }
 }

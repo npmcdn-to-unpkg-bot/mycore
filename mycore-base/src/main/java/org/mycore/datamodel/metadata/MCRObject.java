@@ -29,8 +29,8 @@ import java.net.URI;
 import org.apache.log4j.Logger;
 import org.jdom2.Document;
 import org.jdom2.Element;
+import org.mycore.common.MCRConfigurationException;
 import org.mycore.common.MCRException;
-import org.mycore.common.config.MCRConfigurationException;
 import org.mycore.datamodel.classifications2.MCRCategoryDAOFactory;
 import org.mycore.datamodel.classifications2.MCRCategoryID;
 import org.mycore.datamodel.common.MCRActiveLinkException;
@@ -172,11 +172,7 @@ final public class MCRObject extends MCRBase {
      * The method print all informations about this MCRObject.
      */
     public final void debug() {
-        if (mcr_id == null) {
-            LOGGER.debug("MCRObject ID : missing");
-        } else {
-            LOGGER.debug("MCRObject ID : " + mcr_id.toString());
-        }
+        LOGGER.debug("MCRObject ID : " + mcr_id.toString());
         LOGGER.debug("MCRObject Label : " + mcr_label);
         LOGGER.debug("MCRObject Schema : " + mcr_schema);
         LOGGER.debug("");

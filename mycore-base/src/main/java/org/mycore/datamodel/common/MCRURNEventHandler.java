@@ -32,13 +32,12 @@ import org.jdom2.Document;
 import org.jdom2.filter.Filters;
 import org.jdom2.xpath.XPathExpression;
 import org.jdom2.xpath.XPathFactory;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRConstants;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.content.MCRBaseContent;
 import org.mycore.common.events.MCREvent;
 import org.mycore.common.events.MCREventHandlerBase;
 import org.mycore.common.events.MCREventManager;
-import org.mycore.datamodel.ifs.MCRFile;
 import org.mycore.datamodel.metadata.MCRDerivate;
 import org.mycore.datamodel.metadata.MCRFileMetadata;
 import org.mycore.datamodel.metadata.MCRObject;
@@ -75,12 +74,13 @@ public class MCRURNEventHandler extends MCREventHandlerBase {
             String type = obj.getId().getTypeId();
 
             MCRConfiguration conf = MCRConfiguration.instance();
-            String xPathString = conf.getString(" MCR.Persistence.URN.XPath." + type, conf.getString("MCR.Persistence.URN.XPath", ""));
+            String xPathString = conf.getString(" MCR.Persistence.URN.XPath." + type,
+                    conf.getString("MCR.Persistence.URN.XPath", ""));
 
             if (!xPathString.isEmpty()) {
                 String urn = null;
-                XPathExpression<Object> xpath = XPathFactory.instance()
-                        .compile(xPathString, Filters.fpassthrough(), null, MCRConstants.getStandardNamespaces());
+                XPathExpression<Object> xpath = XPathFactory.instance().compile(xPathString, Filters.fpassthrough(), null,
+                        MCRConstants.getStandardNamespaces());
                 Object o = xpath.evaluateFirst(doc);
                 if (o instanceof Attribute) {
                     urn = ((Attribute) o).getValue();
@@ -99,7 +99,8 @@ public class MCRURNEventHandler extends MCREventHandlerBase {
                 }
             }
         } catch (Exception ex) {
-            LOGGER.error("Could not store / update the urn for object with id " + obj.getId().toString() + " into the database", ex);
+            LOGGER.error("Could not store / update the urn for object with id " + obj.getId().toString()
+                    + " into the database", ex);
         }
     }
 
@@ -163,10 +164,8 @@ public class MCRURNEventHandler extends MCREventHandlerBase {
     @Override
     protected void handleDerivateDeleted(MCREvent evt, MCRDerivate der) {
         try {
-            if (MCRURNManager.hasURNAssigned(der.getId().toString())) {
-                MCRURNManager.removeURNByObjectID(der.getId().toString());
-                LOGGER.info("Deleting urn from database for derivates belonging to " + der.getId().toString());
-            }
+            MCRURNManager.removeURNByObjectID(der.getId().toString());
+            LOGGER.info("Deleting urn from database for derivates belonging to " + der.getId().toString());
         } catch (Exception ex) {
             LOGGER.error("Could not delete the urn from the database for object with id " + der.getId().toString(), ex);
         }
@@ -193,7 +192,8 @@ public class MCRURNEventHandler extends MCREventHandlerBase {
         for (MCRFileMetadata metadata : fileMetadata) {
             String fileURN = metadata.getUrn();
             if (urn != null) {
-                LOGGER.info(MessageFormat.format("load file urn : %s, %s, %s", fileURN, derivateID, metadata.getName()).toString());
+                LOGGER.info(MessageFormat.format("load file urn : %s, %s, %s", fileURN, derivateID, metadata.getName())
+                    .toString());
                 MCRURNManager.assignURN(fileURN, derivateID.toString(), metadata.getName());
             }
         }
@@ -204,18 +204,5 @@ public class MCRURNEventHandler extends MCREventHandlerBase {
         MCREvent indexEvent = new MCREvent(MCREvent.DERIVATE_TYPE, MCREvent.INDEX_EVENT);
         indexEvent.put("derivate", der);
         MCREventManager.instance().handleEvent(indexEvent);
-    }
-
-    /* (non-Javadoc)
-     * @see org.mycore.common.events.MCREventHandlerBase#handleFileDeleted(org.mycore.common.events.MCREvent, org.mycore.datamodel.ifs.MCRFile)
-     */
-    @Override
-    protected void handleFileDeleted(MCREvent evt, MCRFile file) {
-        String path = file.getAbsolutePath();
-        String urn = MCRURNManager.getURNForFile(file.getOwnerID(), path);
-        if (urn != null) {
-            LOGGER.info(MessageFormat.format("Removing urn {0} for file {1} from database", urn, path));
-            MCRURNManager.removeURN(urn);
-        }
     }
 }

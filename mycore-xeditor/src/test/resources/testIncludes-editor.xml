@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 
 <div xmlns:xed="http://www.mycore.de/xeditor">
-  <xed:template id="a">
+  <span id="a">
     <a />
-  </xed:template>
+  </span>
   <xed:form>
     <i1>
-      <xed:include ref="a" />
+      <xed:include ref="a" /> 
     </i1>
     <i2>
-      <xed:include uri="resource:testIncludes-includes.xml" static="true" />
+      <xed:include uri="resource:testIncludes-includes.xml" /> 
     </i2>
     <i3>
-      <xed:include uri="resource:testIncludes-includes.xml" ref="b" />
+      <xed:include uri="resource:testIncludes-includes.xml" ref="b" /> 
     </i3>
   </xed:form>
 </div>

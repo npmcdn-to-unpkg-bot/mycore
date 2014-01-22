@@ -73,7 +73,7 @@ public interface TextFilterPlugin {
      * 
      * @return HashSet List of file extensions
      */
-    public HashSet<MCRFileContentType> getSupportedContentTypes();
+    public HashSet getSupportedContentTypes();
 
     /**
      * onverts a given Inputstream to Textstream which should contain a textual

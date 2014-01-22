@@ -48,8 +48,6 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.common.config.MCRConfigurationException;
 import org.mycore.common.content.MCRContent;
 import org.mycore.common.content.MCRJDOMContent;
 import org.mycore.common.content.transformer.MCRXSL2XMLTransformer;
@@ -75,8 +73,7 @@ public class MCRMailer extends MCRServlet {
         String xsl = job.getRequest().getParameter("xsl");
 
         MCREditorSubmission sub = (MCREditorSubmission) (job.getRequest().getAttribute("MCREditorSubmission"));
-        Document input = sub != null ? sub.getXML() : (Document) (job.getRequest().getAttribute("MCRXEditorSubmission"));
-        MCRMailer.sendMail(input, xsl);
+        MCRMailer.sendMail(sub.getXML(), xsl);
 
         job.getResponse().sendRedirect(goTo);
     }
@@ -287,7 +284,7 @@ public class MCRMailer extends MCRServlet {
      *            null
      */
     public static void send(final String from, final List<String> replyTo, final List<String> to, final List<String> bcc,
-            final String subject, final String body, final List<String> parts) {
+        final String subject, final String body, final List<String> parts) {
         if (to == null || to.size() == 0) {
             StringBuilder sb = new StringBuilder("No receiver defined for mail\n");
             sb.append("Subject: ").append(subject).append('\n');
@@ -330,7 +327,7 @@ public class MCRMailer extends MCRServlet {
     }
 
     private static void trySending(String from, List<String> replyTo, List<String> to, List<String> bcc, String subject, String body,
-            List<String> parts) throws Exception {
+        List<String> parts) throws Exception {
         MimeMessage msg = new MimeMessage(mailSession);
         msg.setFrom(buildAddress(from));
 

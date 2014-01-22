@@ -26,9 +26,10 @@ package org.mycore.frontend.xeditor;
 import java.util.Enumeration;
 
 import org.apache.log4j.Logger;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.frontend.servlets.MCRServlet;
 import org.mycore.frontend.servlets.MCRServletJob;
+import org.mycore.frontend.xeditor.target.MCRDebugTarget;
 import org.mycore.frontend.xeditor.target.MCREditorTarget;
 
 /**
@@ -40,42 +41,31 @@ public class MCRXEditorServlet extends MCRServlet {
 
     @Override
     public void doGetPost(MCRServletJob job) throws Exception {
-        String xEditorStepID = job.getRequest().getParameter(MCREditorSessionStore.XEDITOR_SESSION_PARAM);
-
-        String sessionID = xEditorStepID.split("-")[0];
-        MCREditorSession session = MCREditorSessionStoreFactory.getSessionStore().getSession(sessionID);
-
-        String referrer = job.getRequest().getHeader("referer");
-        session.setPageURL(referrer);
-
-        int stepNr = Integer.parseInt(xEditorStepID.split("-")[1]);
-        session.getChangeTracker().undoChanges(session.getEditedXML(), stepNr);
-
+        String xEditorSessionID = job.getRequest().getParameter(MCREditorSessionStore.XEDITOR_SESSION_PARAM);
+        MCREditorSession session = MCREditorSessionStoreFactory.getSessionStore().getSession(xEditorSessionID);
         sendToTarget(job, session);
     }
 
     private final static String TARGET_PATTERN = "_xed_submit_";
 
     private void sendToTarget(MCRServletJob job, MCREditorSession session) throws Exception {
-        String targetID = "debug";
-        String parameter = "";
-
         for (Enumeration<String> parameters = job.getRequest().getParameterNames(); parameters.hasMoreElements();) {
             String name = parameters.nextElement();
             if (name.startsWith(TARGET_PATTERN)) {
                 if (name.endsWith(".x") || name.endsWith(".y")) // input type="image"
                     name = name.substring(0, name.length() - 2);
 
-                targetID = name.split("[_\\:]")[3].toLowerCase();
-                parameter = name.substring(TARGET_PATTERN.length() + targetID.length());
+                String targetID = name.split("_")[3].toLowerCase();
+                String parameter = name.substring(TARGET_PATTERN.length() + targetID.length());
                 if (!parameter.isEmpty())
                     parameter = parameter.substring(1);
-
-                break;
+                LOGGER.info("sending submission to target " + targetID + " " + parameter);
+                getTarget(targetID).handleSubmission(getServletContext(), job, session, parameter);
+                return;
             }
         }
-        LOGGER.info("sending submission to target " + targetID + " " + parameter);
-        getTarget(targetID).handleSubmission(getServletContext(), job, session, parameter);
+        LOGGER.error("No target ID found in submitted request parameters, " + TARGET_PATTERN + "ID missing");
+        new MCRDebugTarget().handleSubmission(getServletContext(), job, session, null);
     }
 
     private MCREditorTarget getTarget(String targetID) {

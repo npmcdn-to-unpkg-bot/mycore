@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.util.StringTokenizer;
@@ -22,8 +22,6 @@ import com.ibm.icu.util.TimeZone;
  *
  */
 public class MCRISO8601Date {
-
-    public static final String PROPERTY_STRICT_PARSING = "MCR.Metadata.SimpleDateFormat.StrictParsing";
 
     private static final Logger LOGGER = Logger.getLogger(MCRISO8601Date.class);
 
@@ -73,8 +71,7 @@ public class MCRISO8601Date {
         if (locale != null) {
             df = df.withLocale(locale);
         }
-
-        return dt == null ? null : format.indexOf("G") == -1 ? df.print(dt) : df.print(dt).replace("-", "");
+        return dt == null ? null : df.print(dt);
     }
 
     /**
@@ -134,7 +131,7 @@ public class MCRISO8601Date {
         try {
             dt = getDateTime(MCRISO8601FormatChooser.cropSecondFractions(isoString));
         } catch (final RuntimeException e) {
-            final boolean strictParsingEnabled = MCRConfiguration.instance().getBoolean(PROPERTY_STRICT_PARSING, true);
+            final boolean strictParsingEnabled = MCRConfiguration.instance().getBoolean("MCR.Metadata.SimpleDateFormat.StrictParsing", true);
             if (!strictParsingEnabled) {
                 /*
                  * Last line of defence against the worst dates of the universe ;o)

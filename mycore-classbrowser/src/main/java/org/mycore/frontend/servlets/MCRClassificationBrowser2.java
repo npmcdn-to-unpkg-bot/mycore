@@ -34,7 +34,6 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.TransformerException;
 
 import org.apache.log4j.Logger;
 import org.jdom2.Element;
@@ -50,7 +49,6 @@ import org.mycore.services.fieldquery.MCRQuery;
 import org.mycore.services.fieldquery.MCRQueryCondition;
 import org.mycore.services.fieldquery.MCRQueryManager;
 import org.mycore.services.fieldquery.MCRQueryParser;
-import org.xml.sax.SAXException;
 
 /**
  * This servlet provides a way to visually navigate through the tree of
@@ -130,10 +128,8 @@ public class MCRClassificationBrowser2 extends MCRServlet {
         for (MCRCategory child : category.getChildren()) {
             String childID = child.getId().getID();
             long numResults = 0;
-            if (queryAdapter != null) {
-                queryAdapter.setCategory(addClassId ? child.getId().toString() : childID);
-            }
             if (countResults) {
+                queryAdapter.setCategory(addClassId ? child.getId().toString() : childID);
                 numResults = queryAdapter.getResultCount();
                 if ((!emptyLeaves) && (numResults < 1))
                     continue;
@@ -214,11 +210,8 @@ public class MCRClassificationBrowser2 extends MCRServlet {
             });
     }
 
-    /** Sends output to client browser 
-     * @throws SAXException 
-     * @throws TransformerException */
-    private void renderToHTML(MCRServletJob job, HttpServletRequest req, Element xml) throws IOException, TransformerException,
-            SAXException {
+    /** Sends output to client browser */
+    private void renderToHTML(MCRServletJob job, HttpServletRequest req, Element xml) throws IOException {
         String style = req.getParameter("style"); // XSL.Style, optional
         if ((style != null) && (style.length() > 0))
             req.setAttribute("XSL.Style", style);

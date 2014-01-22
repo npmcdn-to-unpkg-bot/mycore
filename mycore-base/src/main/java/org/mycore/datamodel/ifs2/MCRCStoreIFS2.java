@@ -30,15 +30,14 @@ import java.io.OutputStream;
 import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
+import org.mycore.common.MCRConfiguration;
+import org.mycore.common.MCRConfigurationException;
 import org.mycore.common.MCRPersistenceException;
-import org.mycore.common.config.MCRConfiguration;
-import org.mycore.common.config.MCRConfigurationException;
 import org.mycore.common.content.MCRContent;
 import org.mycore.common.content.MCRStreamContent;
 import org.mycore.datamodel.ifs.MCRContentInputStream;
 import org.mycore.datamodel.ifs.MCRContentStore;
 import org.mycore.datamodel.ifs.MCRFileReader;
-import org.mycore.datamodel.metadata.MCRObjectID;
 
 /**
  * Implements the MCRContentStore interface to store the content of
@@ -87,13 +86,13 @@ public class MCRCStoreIFS2 extends MCRContentStore {
         if (!ignoreOwnerBase) {
             sid += "_" + base;
             storeBaseDir += File.separatorChar + base.replace("_", File.separator);
-            prefix = base + "_";
+            prefix = base+"_";
         }
 
         MCRFileStore store = MCRStoreManager.getStore(sid, MCRFileStore.class);
         if (store == null)
             store = createStore(sid, storeBaseDir);
-        store.prefix = prefix;
+        	store.prefix = prefix;
         return store;
     }
 
@@ -120,20 +119,22 @@ public class MCRCStoreIFS2 extends MCRContentStore {
         LOGGER.info("Configured " + property + "=" + value);
     }
 
-    private int getSlotID(String ownerID) {
+    private int getSlotID(MCRFileReader fr) {
+        String ownerID = fr.getOwnerID();
         int pos = ownerID.lastIndexOf("_") + 1;
         return Integer.parseInt(ownerID.substring(pos));
     }
 
-    private String getBase(String ownerID) {
+    private String getBase(MCRFileReader fr) {
+        String ownerID = fr.getOwnerID();
         int pos = ownerID.lastIndexOf("_");
         return ownerID.substring(0, pos);
     }
 
     @Override
     protected boolean exists(MCRFileReader fr) {
-        int slotID = getSlotID(fr.getOwnerID());
-        String base = getBase(fr.getOwnerID());
+        int slotID = getSlotID(fr);
+        String base = getBase(fr);
         MCRFileStore store = getStore(base);
 
         try {
@@ -150,22 +151,10 @@ public class MCRCStoreIFS2 extends MCRContentStore {
         }
     }
 
-    /**
-     * For the given derivateID, returns the underlying IFS2 file collection storing the files of the derivate 
-     */
-    public MCRFileCollection getIFS2FileCollection(MCRObjectID derivateID) throws IOException {
-        String oid = derivateID.toString();
-        String base = getBase(oid);
-        MCRFileStore store = getStore(base);
-
-        int slotID = getSlotID(oid);
-        return store.retrieve(slotID);
-    }
-
     @Override
     protected String doStoreContent(MCRFileReader fr, MCRContentInputStream source) throws Exception {
-        int slotID = getSlotID(fr.getOwnerID());
-        String base = getBase(fr.getOwnerID());
+        int slotID = getSlotID(fr);
+        String base = getBase(fr);
         MCRFileStore store = getStore(base);
 
         MCRFileCollection slot = store.retrieve(slotID);
@@ -226,8 +215,9 @@ public class MCRCStoreIFS2 extends MCRContentStore {
     }
 
     @Override
-    public File getLocalFile(String storageId) throws IOException {
-        MCRFile file = getFile(storageId);
+    public File getLocalFile(MCRFileReader fr) throws IOException {
+        String storageID = fr.getStorageID();
+        MCRFile file = getFile(storageID);
         return file.getLocalFile();
     }
 
@@ -245,10 +235,5 @@ public class MCRCStoreIFS2 extends MCRContentStore {
         int pos = storageID.indexOf("/") + 1;
         String path = storageID.substring(pos);
         return (MCRFile) (slot.getNodeByPath(path));
-    }
-
-    @Override
-    public File getBaseDir() throws IOException {
-        return new File(baseDir);
     }
 }

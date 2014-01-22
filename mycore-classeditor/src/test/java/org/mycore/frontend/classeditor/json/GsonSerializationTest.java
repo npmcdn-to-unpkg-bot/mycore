@@ -1,10 +1,11 @@
 package org.mycore.frontend.classeditor.json;
 
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 import org.junit.Before;
-import org.mycore.common.config.MCRConfiguration;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.datamodel.classifications2.MCRCategoryID;
 import org.mycore.datamodel.classifications2.MCRLabel;
 import org.mycore.datamodel.classifications2.impl.MCRCategoryImpl;
@@ -15,8 +16,8 @@ public class GsonSerializationTest {
     @Before
     public void init() {
         System.setProperty("MCR.Configuration.File", "config/test.properties");
-        MCRConfiguration mcrProperties = MCRConfiguration.instance();
-        mcrProperties.set("MCR.Category.DAO", CategoryDAOMock.class.getName());
+        Properties mcrProperties = MCRConfiguration.instance().getProperties();
+        mcrProperties.setProperty("MCR.Category.DAO", CategoryDAOMock.class.getName());
     }
 
     protected MCRCategoryImpl createCateg(String rootID, String id2, String text) {

@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -67,8 +68,7 @@ public class MCRURIResolverFilter implements Filter {
      * @see javax.servlet.Filter#doFilter(javax.servlet.ServletRequest,
      *      javax.servlet.ServletResponse, javax.servlet.FilterChain)
      */
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException,
-        ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         /*
          * isDebugEnabled() may return a different value when called a second
          * time. Since we initialize things in the first block, we need to make
@@ -80,6 +80,7 @@ public class MCRURIResolverFilter implements Filter {
             //do not filter...
             filterChain.doFilter(request, response);
         } else {
+            ServletOutputStream out = response.getOutputStream();
             MyResponseWrapper wrapper = new MyResponseWrapper((HttpServletResponse) response);
             // process request
             filterChain.doFilter(request, wrapper);
@@ -91,28 +92,21 @@ public class MCRURIResolverFilter implements Filter {
              * to byte arrays.
              */
             if (!uriList.get().isEmpty() && origOutput.length() > 0
-                && (response.getContentType().contains("text/html") || response.getContentType().contains("text/xml"))) {
+                    && (response.getContentType().contains("text/html") || response.getContentType().contains("text/xml"))) {
+                int pos = getInsertPosition(origOutput);
+                out.write(origOutput.substring(0, pos).getBytes(characterEncoding));
                 final String insertString = "\n<!-- \n" + uriList.get().toString() + "\n-->";
                 final byte[] insertBytes = insertString.getBytes(characterEncoding);
+                out.write(insertBytes);
+                out.write(origOutput.substring(pos, origOutput.length()).getBytes(characterEncoding));
                 response.setContentLength(origOutput.getBytes(characterEncoding).length + insertBytes.length);
-                int pos = getInsertPosition(origOutput);
-                try (ServletOutputStream out = response.getOutputStream()) {
-                    out.write(origOutput.substring(0, pos).getBytes(characterEncoding));
-                    out.write(insertBytes);
-                    out.write(origOutput.substring(pos, origOutput.length()).getBytes(characterEncoding));
-                    // delete debuglist
-                    uriList.remove();
-                    LOGGER.debug("end filter: " + origOutput.substring(origOutput.length() - 10, origOutput.length()));
-                }
+                // delete debuglist
+                uriList.remove();
+                LOGGER.debug("end filter");
             } else {
-                LOGGER.debug("Sending original response");
-                byte[] byteArray = wrapper.output.toByteArray();
-                if (byteArray.length > 0) {
-                    try (ServletOutputStream out = response.getOutputStream()) {
-                        out.write(byteArray);
-                    }
-                }
+                out.write(origOutput.getBytes(characterEncoding));
             }
+            out.close();
         }
     }
 

@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 
@@ -45,9 +45,9 @@ import org.jdom2.Element;
 import org.jdom2.filter.Filters;
 import org.jdom2.xpath.XPathExpression;
 import org.jdom2.xpath.XPathFactory;
+import org.mycore.common.MCRConfiguration;
 import org.mycore.common.MCRException;
 import org.mycore.common.MCRUtils;
-import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.content.MCRFileContent;
 import org.mycore.common.xml.MCRXMLParserFactory;
 import org.mycore.datamodel.common.MCRActiveLinkException;
@@ -437,8 +437,7 @@ public class MCRSimpleWorkflowManager {
      * @throws SAXParseException 
      * @throws MCRException 
      */
-    public final boolean commitMetadataObject(MCRObjectID ID) throws MCRActiveLinkException, MCRException,
-        SAXParseException, IOException {
+    public final boolean commitMetadataObject(MCRObjectID ID) throws MCRActiveLinkException, MCRException, SAXParseException, IOException {
         // commit metadata
         String fn = getDirectoryPath(ID.getBase()) + File.separator + ID + ".xml";
 
@@ -524,9 +523,9 @@ public class MCRSimpleWorkflowManager {
         final String myproject = base_id;
         Set<File> workdirs = new HashSet<File>();
         workdirs.add(getDirectoryPath(base_id));
-        Map<String, String> propsWD = config.getPropertiesMap("MCR.SWF.Directory.");
-        for (String key : propsWD.keySet()) {
-            File dir = new File(propsWD.get(key));
+        Properties propsWD = config.getProperties("MCR.SWF.Directory.");
+        for (Object key : propsWD.keySet()) {
+            File dir = new File(propsWD.getProperty((String) key));
             if (!dir.exists()) {
                 dir.mkdirs();
             }
@@ -604,8 +603,8 @@ public class MCRSimpleWorkflowManager {
             File fi = new File(fn);
             if (fi.isFile() && fi.canRead()) {
                 Document wfDoc = MCRXMLParserFactory.getNonValidatingParser().parseXML(new MCRFileContent(fi));
-                XPathExpression<Element> path = XPathFactory.instance().compile(
-                    "/*/service/servacls/servacl[@permission='" + permission + "']/condition", Filters.element());
+                XPathExpression<Element> path = XPathFactory.instance().compile("/*/service/servacls/servacl[@permission='" + permission + "']/condition",
+                    Filters.element());
                 List<Element> results = path.evaluate(wfDoc);
                 if (results.size() > 0) {
                     return (Element) ((Element) results.get(0)).detach();
