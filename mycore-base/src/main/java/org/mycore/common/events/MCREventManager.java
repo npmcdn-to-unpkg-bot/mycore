@@ -23,6 +23,7 @@
 
 package org.mycore.common.events;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -33,6 +34,7 @@ import org.apache.log4j.Logger;
 import org.mycore.common.MCRException;
 import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.config.MCRConfigurationException;
+import org.mycore.services.fieldquery.MCRSearcherFactory;
 
 /**
  * Acts as a multiplexer to forward events that are created to all registered
@@ -92,8 +94,6 @@ public class MCREventManager {
 
     private static MCREventManager instance;
 
-    public static final String CONFIG_PREFIX = "MCR.EventHandler.";
-
     /**
      * The singleton manager instance
      * 
@@ -115,7 +115,9 @@ public class MCREventManager {
 
         MCRConfiguration config = MCRConfiguration.instance();
 
-        Map<String, String> props = config.getPropertiesMap(CONFIG_PREFIX);
+        String prefix = "MCR.EventHandler.";
+
+        Map<String, String> props = config.getPropertiesMap(prefix);
 
         if (props == null) {
             return;
@@ -123,10 +125,7 @@ public class MCREventManager {
 
         List<String> propertyKeyList = new ArrayList<String>(props.size());
         for (Object name : props.keySet()) {
-            String key = name.toString();
-            if (!key.startsWith(CONFIG_PREFIX + "Mode.")) {
-                propertyKeyList.add(key);
-            }
+            propertyKeyList.add(name.toString());
         }
         Collections.sort(propertyKeyList);
 
@@ -138,8 +137,22 @@ public class MCREventManager {
 
             logger.debug("EventManager instantiating handler " + config.getString(propertyKey) + " for type " + type);
 
+            Object handler = null;
+
             if (propKeyIsSet(propertyKey)) {
-                addEventHandler(type, getEventHandler(mode, propertyKey));
+                if ("Class".equals(mode)) {
+                    handler = config.getSingleInstanceOf(propertyKey);
+                } else if("Indexer".equals(mode)){
+                    handler = MCRSearcherFactory.getSearcher(config.getString(propertyKey));
+                } else{
+                    throw new MCRConfigurationException(MessageFormat.format("Unsupported mode {0} for event handler.", mode));
+                }
+
+                if (!(handler instanceof MCREventHandler)) {
+                    String msg = "Error: Class does not implement MCREventHandler: " + propertyKey;
+                    throw new MCRConfigurationException(msg);
+                }
+                addEventHandler(type, (MCREventHandler)handler);
             }
         }
     }
@@ -194,8 +207,7 @@ public class MCREventManager {
         Exception handleEventExceptionCaught = null;
         for (int i = first; i != last + step; i += step) {
             MCREventHandler eh = list.get(i);
-            logger.debug("EventManager " + evt.getObjectType() + " " + evt.getEventType() + " calling handler "
-                + eh.getClass().getName());
+            logger.debug("EventManager " + evt.getObjectType() + " " + evt.getEventType() + " calling handler " + eh.getClass().getName());
 
             try {
                 eh.doHandleEvent(evt);
@@ -214,7 +226,7 @@ public class MCREventManager {
         for (int i = undoPos - step; i != first - step; i -= step) {
             MCREventHandler eh = list.get(i);
             logger.debug("EventManager " + evt.getObjectType() + " " + evt.getEventType() + " calling undo of handler "
-                + eh.getClass().getName());
+                    + eh.getClass().getName());
 
             try {
                 eh.undoHandleEvent(evt);
@@ -266,7 +278,7 @@ public class MCREventManager {
     public MCREventManager removeEventHandler(String type, MCREventHandler handler) {
         List<MCREventHandler> handlerList = this.handlers.get(type);
         handlerList.remove(handler);
-        if (handlerList.isEmpty()) {
+        if(handlerList.isEmpty()) {
             this.handlers.remove(type);
         }
         return this;
@@ -286,21 +298,8 @@ public class MCREventManager {
      * Clears the <code>MCREventManager</code> so that it contains no <code>MCREventHandler</code>.
      */
     public MCREventManager clear() {
-        this.handlers.clear();
-        return this;
+       this.handlers.clear();
+       return this;
     }
 
-    public MCREventHandler getEventHandler(String mode, String propertyValue) {
-        MCRConfiguration configuration = MCRConfiguration.instance();
-        if ("Class".equals(mode)) {
-            return configuration.getSingleInstanceOf(propertyValue);
-        }
-        String className = CONFIG_PREFIX + "Mode." + mode;
-        MCREventHandlerInitializer configuredInitializer = configuration.getSingleInstanceOf(className);
-        return configuredInitializer.getInstance(propertyValue);
-    }
-
-    public static interface MCREventHandlerInitializer {
-        public MCREventHandler getInstance(String propertyValue);
-    }
 }

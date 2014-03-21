@@ -6,7 +6,6 @@
   version="1.0">
   <xsl:param name="MCR.Handle.Resolver.MasterURL" />
   <xsl:param name="MCR.Users.Guestuser.UserName" />
-  <xsl:param name="MCR.Mods.SherpaRomeo.ApiKey" select="''" />
   <xsl:param name="ServletsBaseURL" />
 
   <xsl:key use="mods:role/mods:roleTerm" name="name-by-role" match="mods:mods/mods:name" />
@@ -668,7 +667,7 @@
     <!-- like cc_by-nc-sa: remove the 'cc_' -->
     <xsl:variable name="licenseString" select="substring-after(normalize-space(.),'cc_')" />
     <a rel="license" href="http://creativecommons.org/licenses/{$licenseString}/{$licenseVersion}/">
-      <img src="//i.creativecommons.org/l/{$licenseString}/{$licenseVersion}/88x31.png" />
+      <img src="http://i.creativecommons.org/l/{$licenseString}/{$licenseVersion}/88x31.png" />
     </a>
   </xsl:template>
 
@@ -1334,15 +1333,15 @@
           <xsl:variable name="identifier" select="./metadata/def.modsContainer/modsContainer/mods:mods/mods:identifier" />
           <xsl:apply-templates mode="present" select="$identifier" />
           <xsl:for-each select="./metadata/def.modsContainer/modsContainer/mods:mods/mods:identifier[@type='issn']">
-            <xsl:variable name="sherpa_issn" select="." />
-            <xsl:for-each select="document(concat('http://www.sherpa.ac.uk/romeo/api29.php?ak=', $MCR.Mods.SherpaRomeo.ApiKey, '&amp;issn=', $sherpa_issn))//publishers/publisher">
+            <xsl:if test="document(concat('http://www.sherpa.ac.uk/romeo/api29.php?issn=', .))//numhits &gt; 0">
+              <xsl:variable name="sherpa_issn" select="." />
               <tr>
                 <td class="metaname" valign="top">SHERPA/RoMEO:</td>
                 <td class="metavalue">
-                  <a href="http://www.sherpa.ac.uk/romeo/search.php?issn={$sherpa_issn}">RoMEO <xsl:value-of select="romeocolour" /> Journal</a>
+                  <a href="http://www.sherpa.ac.uk/romeo/search.php?issn={$sherpa_issn}">RoMEO <xsl:value-of select="document(concat('http://www.sherpa.ac.uk/romeo/api29.php?issn=', $sherpa_issn))//romeocolour" /> Journal</a>
                 </td>
               </tr>
-            </xsl:for-each>
+            </xsl:if>
           </xsl:for-each>
           <xsl:call-template name="printMetaDate.mods.permalink" />
           <xsl:apply-templates mode="present" select="./metadata/def.modsContainer/modsContainer/mods:mods/mods:extension" />

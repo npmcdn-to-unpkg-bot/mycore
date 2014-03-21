@@ -3,7 +3,7 @@
   <parent>
     <artifactId>mycore</artifactId>
     <groupId>org.mycore</groupId>
-    <version>2014.04-SNAPSHOT</version>
+    <version>2014.03</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -89,6 +89,11 @@
     </dependency>
     <dependency>
       <groupId>org.mycore</groupId>
+      <artifactId>mycore-wcms</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mycore</groupId>
       <artifactId>mycore-wcms2</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -107,11 +112,11 @@
       <artifactId>mycore-wfc</artifactId>
       <version>${project.version}</version>
     </dependency>
-<!--     <dependency> -->
-<!--       <groupId>org.mycore</groupId> -->
-<!--       <artifactId>mycore-z3950</artifactId> -->
-<!--       <version>${project.version}</version> -->
-<!--     </dependency> -->
+    <dependency>
+      <groupId>org.mycore</groupId>
+      <artifactId>mycore-z3950</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.mycore</groupId>
       <artifactId>mycore-solr</artifactId>

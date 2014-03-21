@@ -70,15 +70,14 @@ public class MCRMETSServlet extends MCRServlet {
         MCRDirectory dir = MCRDirectory.getRootDirectory(derivate);
 
         if (dir == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND,
-                MessageFormat.format("Derivate {0} does not exist.", derivate));
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, MessageFormat.format("Derivate {0} does not exist.", derivate));
             return;
         }
         request.setAttribute("XSL.derivateID", derivate);
         Collection<String> linkList = MCRLinkTableManager.instance().getSourceOf(derivate);
         if (linkList.isEmpty()) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, MessageFormat.format(
-                "Derivate {0} is not linked with a MCRObject. Please contact an administrator.", derivate));
+                    "Derivate {0} is not linked with a MCRObject. Please contact an administrator.", derivate));
             return;
         }
         request.setAttribute("XSL.objectID", linkList.iterator().next());
@@ -86,15 +85,12 @@ public class MCRMETSServlet extends MCRServlet {
 
         long lastModified = dir.getLastModified().getTimeInMillis();
 
-
         writeCacheHeaders(response, CACHE_TIME, lastModified, useExpire);
         long start = System.currentTimeMillis();
         MCRContent metsContent = getMetsSource(job, useExistingMets(request), derivate);
         MCRLayoutService.instance().doLayout(request, response, metsContent);
-        LOGGER.info("Generation of code by " + this.getClass().getSimpleName() + " took "
-            + (System.currentTimeMillis() - start) + " ms");
+        LOGGER.info("Generation of code by " + this.getClass().getSimpleName() + " took " + (System.currentTimeMillis() - start) + " ms");
     }
-
 
     /**
      * Returns the mets document wrapped in a {@link MCRContent} object.
@@ -111,8 +107,7 @@ public class MCRMETSServlet extends MCRServlet {
 
         try {
             job.getRequest().setAttribute("XSL.derivateID", derivate);
-            job.getRequest().setAttribute("XSL.objectID",
-                MCRLinkTableManager.instance().getSourceOf(derivate).iterator().next());
+            job.getRequest().setAttribute("XSL.objectID", MCRLinkTableManager.instance().getSourceOf(derivate).iterator().next());
         } catch (Exception x) {
             LOGGER.warn("Unable to set \"XSL.objectID\" attribute to current request", x);
         }
@@ -157,12 +152,12 @@ public class MCRMETSServlet extends MCRServlet {
         boolean running = true;
         for (int i = (pathInfo.charAt(0) == '/') ? 1 : 0; (i < pathInfo.length() && running); i++) {
             switch (pathInfo.charAt(i)) {
-                case '/':
-                    running = false;
-                    break;
-                default:
-                    ownerID.append(pathInfo.charAt(i));
-                    break;
+            case '/':
+                running = false;
+                break;
+            default:
+                ownerID.append(pathInfo.charAt(i));
+                break;
             }
         }
         return ownerID.toString();

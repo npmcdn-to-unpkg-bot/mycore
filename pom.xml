@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <artifactId>mycore-parent</artifactId>
     <groupId>org.mycore</groupId>
-    <version>22-SNAPSHOT</version>
+    <version>21</version>
   </parent>
   <artifactId>mycore</artifactId>
   <packaging>pom</packaging>
-  <version>2014.04-SNAPSHOT</version>
+  <version>2014.03</version>
   <name>MyCoRe</name>
   <description>
     MyCoRe is a system for the development of institutional content repositories, publication servers, image collections,
@@ -20,11 +19,10 @@
   <properties>
     <java.target.version>1.7</java.target.version>
     <uniqueVersion>false</uniqueVersion>
-    <hibernate.version>4.3.4.Final</hibernate.version>
-    <httpcomponents.version>4.3.3</httpcomponents.version>
-    <httpcore.version>4.3.2</httpcore.version>
+    <hibernate.version>4.3.0.Final</hibernate.version>
+    <lucene.version>3.6.2</lucene.version>
     <xalan.version>2.7.1</xalan.version>
-    <jersey.version>1.18.1</jersey.version>
+    <jersey.version>1.18</jersey.version>
     <changelog.since>2014-02-11</changelog.since>
     <!-- until snapshot matches released version (required for 'mvn changes:changes-check') -->
     <changes.version>2014.03</changes.version>
@@ -61,9 +59,9 @@
     </notifiers>
   </ciManagement>
   <scm>
-    <connection>scm:svn:http://server.mycore.de/svn/mycore/trunk</connection>
-    <developerConnection>scm:svn:https://server.mycore.de/svn/mycore/trunk</developerConnection>
-    <url>http://www.mycore.de/viewvc/viewvc.cgi/mycore/trunk</url>
+    <connection>scm:svn:http://server.mycore.de/svn/mycore/tags/mycore-2014.03</connection>
+    <developerConnection>scm:svn:https://server.mycore.de/svn/mycore/tags/mycore-2014.03</developerConnection>
+    <url>http://www.mycore.de/viewvc/viewvc.cgi/mycore/tags/mycore-2014.03</url>
   </scm>
   <profiles>
     <profile>
@@ -275,6 +273,7 @@
                 <link>http://www.jdom.org/docs/apidocs/</link>
                 <link>http://logging.apache.org/log4j/1.2/apidocs/</link>
                 <link>http://docs.jboss.org/hibernate/core/4.3/javadocs/</link>
+                <link>http://lucene.apache.org/core/3_6_2/api/all/</link>
                 <link>http://lucene.apache.org/solr/4_6_1/solr-solrj/</link>
               </links>
             </configuration>
@@ -496,26 +495,10 @@
               <link>http://www.jdom.org/docs/apidocs/</link>
               <link>http://logging.apache.org/log4j/1.2/apidocs/</link>
               <link>http://docs.jboss.org/hibernate/core/4.3/javadocs/</link>
+              <link>http://lucene.apache.org/core/3_6_2/api/all/</link>
               <link>http://lucene.apache.org/solr/4_6_1/solr-solrj/</link>
             </links>
           </configuration>
-        </plugin>
-        <plugin>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <executions>
-            <execution>
-              <inherited>true</inherited>
-              <id>analyze</id>
-              <goals>
-                <goal>analyze-only</goal>
-              </goals>
-              <configuration>
-                <failOnWarning>true</failOnWarning>
-                <ignoreNonCompile>true</ignoreNonCompile>
-                <outputXML>true</outputXML>
-              </configuration>
-            </execution>
-          </executions>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -532,9 +515,6 @@
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
       </plugin>
     </plugins>
   </build>
@@ -565,6 +545,33 @@
         <artifactId>junit</artifactId>
         <version>4.11</version>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.dbunit</groupId>
+        <artifactId>dbunit</artifactId>
+        <version>2.4.9</version>
+        <exclusions>
+          <exclusion>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>ant</groupId>
+            <artifactId>ant</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.oracle</groupId>
+            <artifactId>odbc14</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.jasig.cas</groupId>
@@ -605,7 +612,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-compress</artifactId>
-        <version>1.7</version>
+        <version>1.6</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -625,7 +632,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>16.0.1</version>
+        <version>15.0</version>
       </dependency>
       <dependency>
         <!-- required for commons-vfs -->
@@ -633,6 +640,11 @@
         <artifactId>jsch</artifactId>
         <version>0.1.50</version>
         <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.hibernate</groupId>
+        <artifactId>jtidy-r8</artifactId>
+        <version>21122004</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -669,6 +681,21 @@
         <version>2.6</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-core</artifactId>
+        <version>${lucene.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-analyzers</artifactId>
+        <version>${lucene.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-queries</artifactId>
+        <version>${lucene.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.solr</groupId>
         <artifactId>solr-solrj</artifactId>
         <version>4.7.0</version>
@@ -676,28 +703,12 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpmime</artifactId>
-        <version>${httpcomponents.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpcore</artifactId>
-        <version>${httpcore.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpclient</artifactId>
-        <version>${httpcomponents.version}</version>
+        <version>4.3.1</version>
       </dependency>
       <dependency>
         <groupId>xerces</groupId>
         <artifactId>xercesImpl</artifactId>
         <version>2.11.0</version>
-        <exclusions>
-          <exclusion>
-            <groupId>xml-apis</groupId>
-            <artifactId>xml-apis</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>com.ibm.icu</groupId>
@@ -731,12 +742,6 @@
         <groupId>xalan</groupId>
         <artifactId>serializer</artifactId>
         <version>${xalan.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>xml-apis</groupId>
-            <artifactId>xml-apis</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>xom</groupId>
@@ -746,22 +751,37 @@
       <dependency>
         <groupId>commons-fileupload</groupId>
         <artifactId>commons-fileupload</artifactId>
-        <version>1.3.1</version>
+        <version>1.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.3.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.drewnoakes</groupId>
+        <artifactId>metadata-extractor</artifactId>
+        <version>2.6.2</version>
+      </dependency>
+      <dependency>
+        <groupId>net.sf.javamusictag</groupId>
+        <artifactId>jid3lib</artifactId>
+        <version>0.5.4</version>
       </dependency>
       <dependency>
         <groupId>org.apache.pdfbox</groupId>
         <artifactId>pdfbox</artifactId>
-        <version>1.8.4</version>
+        <version>1.8.3</version>
       </dependency>
       <dependency>
         <groupId>org.tmatesoft.svnkit</groupId>
         <artifactId>svnkit</artifactId>
-        <version>1.8.3-1</version>
+        <version>1.8.2</version>
       </dependency>
       <dependency>
         <groupId>net.java.dev.jna</groupId>
         <artifactId>jna</artifactId>
-        <version>4.1.0</version>
+        <version>4.0.0</version>
         <optional>true</optional>
         <scope>runtime</scope>
       </dependency>
@@ -799,6 +819,11 @@
         </exclusions>
       </dependency>
       <dependency>
+        <groupId>org.textmining</groupId>
+        <artifactId>tm-extractors</artifactId>
+        <version>0.4</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.ws.security</groupId>
         <artifactId>wss4j</artifactId>
         <version>1.6.14</version>
@@ -823,17 +848,6 @@
         <groupId>org.hibernate</groupId>
         <artifactId>hibernate-core</artifactId>
         <version>${hibernate.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>xml-apis</groupId>
-            <artifactId>xml-apis</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.hibernate.javax.persistence</groupId>
-        <artifactId>hibernate-jpa-2.1-api</artifactId>
-        <version>1.0.0.Final</version>
       </dependency>
       <dependency>
         <groupId>org.apache.ant</groupId>
@@ -844,13 +858,13 @@
       <dependency>
         <groupId>org.hsqldb</groupId>
         <artifactId>hsqldb</artifactId>
-        <version>2.3.2</version>
+        <version>2.3.1</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
-        <version>1.7.6</version>
+        <version>1.7.5</version>
         <scope>runtime</scope>
       </dependency>
       <dependency>
@@ -864,7 +878,6 @@
         <artifactId>ant-contrib</artifactId>
         <version>1.0b3</version>
         <optional>true</optional>
-        <scope>runtime</scope>
         <exclusions>
           <exclusion>
             <groupId>ant</groupId>
@@ -902,11 +915,6 @@
         <version>${jersey.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.sun.jersey</groupId>
-        <artifactId>jersey-core</artifactId>
-        <version>${jersey.version}</version>
-      </dependency>
-      <dependency>
         <groupId>com.sun.jersey.contribs</groupId>
         <artifactId>jersey-multipart</artifactId>
         <version>${jersey.version}</version>
@@ -920,35 +928,10 @@
         <groupId>com.sun.jersey</groupId>
         <artifactId>jersey-servlet</artifactId>
         <version>${jersey.version}</version>
-        <scope>runtime</scope>
       </dependency>
       <dependency>
         <groupId>com.sun.jersey.jersey-test-framework</groupId>
         <artifactId>jersey-test-framework-grizzly</artifactId>
-        <version>${jersey.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.sun.jersey</groupId>
-        <artifactId>jersey-grizzly</artifactId>
-        <version>${jersey.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.hamcrest</groupId>
-        <artifactId>hamcrest-core</artifactId>
-        <version>1.3</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.sun.grizzly</groupId>
-        <artifactId>grizzly-servlet-webserver</artifactId>
-        <version>1.9.45</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.sun.jersey.jersey-test-framework</groupId>
-        <artifactId>jersey-test-framework-core</artifactId>
         <version>${jersey.version}</version>
         <scope>test</scope>
       </dependency>
@@ -1365,11 +1348,12 @@
     <module>mycore-swf</module>
     <module>mycore-sword</module>
     <module>mycore-user2</module>
+    <module>mycore-wcms</module>
     <module>mycore-wcms2</module>
     <module>mycore-webcli</module>
     <module>mycore-webservices</module>
     <module>mycore-wfc</module>
-<!--     <module>mycore-z3950</module> -->
+    <module>mycore-z3950</module>
     <module>mycore-xeditor</module>
     <module>mycore-complete</module>
     <module>iview2-addons</module>

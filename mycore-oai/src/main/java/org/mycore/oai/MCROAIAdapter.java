@@ -93,11 +93,9 @@ public class MCROAIAdapter implements OAIAdapter {
 
     public MCROAISetManager getSetManager() {
         if (this.setManager == null) {
-            this.setManager = MCRConfiguration.instance().getInstanceOf(getConfigPrefix() + "SetManager",
-                MCROAISetManager.class.getName());
+            this.setManager = new MCROAISetManager();
             int cacheMaxAge = MCRConfiguration.instance().getInt(this.configPrefix + "SetCache.MaxAge", 0);
-            boolean filterEmptySets = MCRConfiguration.instance().getBoolean(this.configPrefix + "FilterEmptySets",
-                true);
+            boolean filterEmptySets = MCRConfiguration.instance().getBoolean(this.configPrefix + "FilterEmptySets", true);
             this.setManager.init(getConfigPrefix(), cacheMaxAge, filterEmptySets);
         }
         return this.setManager;
@@ -115,10 +113,8 @@ public class MCROAIAdapter implements OAIAdapter {
     public MCROAISearchManager getSearchManager() {
         if (this.searchManager == null) {
             this.searchManager = new MCROAISearchManager();
-            int partitionSize = MCRConfiguration.instance().getInt(
-                getConfigPrefix() + "ResumptionTokens.PartitionSize", DEFAULT_PARTITION_SIZE);
-            this.searchManager.init(getConfigPrefix(), getIdentify().getDeletedRecordPolicy(), getObjectManager(),
-                partitionSize);
+            int partitionSize = MCRConfiguration.instance().getInt(getConfigPrefix() + "ResumptionTokens.PartitionSize", DEFAULT_PARTITION_SIZE);
+            this.searchManager.init(getConfigPrefix(), getIdentify().getDeletedRecordPolicy(), getObjectManager(), partitionSize);
         }
         return this.searchManager;
     }
@@ -226,8 +222,7 @@ public class MCROAIAdapter implements OAIAdapter {
      * @see org.mycore.oai.pmh.dataprovider.OAIAdapter#getMetadataFormats(java.lang.String)
      */
     @Override
-    public List<MetadataFormat> getMetadataFormats(String identifier) throws IdDoesNotExistException,
-        NoMetadataFormatsException {
+    public List<MetadataFormat> getMetadataFormats(String identifier) throws IdDoesNotExistException, NoMetadataFormatsException {
         if (!getObjectManager().exists(identifier)) {
             throw new IdDoesNotExistException(identifier);
         }
@@ -239,8 +234,7 @@ public class MCROAIAdapter implements OAIAdapter {
      * @see org.mycore.oai.pmh.dataprovider.OAIAdapter#getRecord(java.lang.String, org.mycore.oai.pmh.MetadataFormat)
      */
     @Override
-    public Record getRecord(String identifier, MetadataFormat format) throws CannotDisseminateFormatException,
-        IdDoesNotExistException {
+    public Record getRecord(String identifier, MetadataFormat format) throws CannotDisseminateFormatException, IdDoesNotExistException {
         MCROAIObjectManager objectManager = getObjectManager();
         if (!objectManager.exists(identifier)) {
             DeletedRecordPolicy rP = getIdentify().getDeletedRecordPolicy();
@@ -275,8 +269,8 @@ public class MCROAIAdapter implements OAIAdapter {
     }
 
     @Override
-    public OAIDataList<Record> getRecords(MetadataFormat format, Set set, Date from, Date until)
-        throws CannotDisseminateFormatException, NoSetHierarchyException, NoRecordsMatchException {
+    public OAIDataList<Record> getRecords(MetadataFormat format, Set set, Date from, Date until) throws CannotDisseminateFormatException,
+            NoSetHierarchyException, NoRecordsMatchException {
         OAIDataList<Record> recordList = getSearchManager().searchRecord(format, set, from, until);
         if (recordList.isEmpty()) {
             throw new NoRecordsMatchException();
@@ -294,8 +288,8 @@ public class MCROAIAdapter implements OAIAdapter {
     }
 
     @Override
-    public OAIDataList<Header> getHeaders(MetadataFormat format, Set set, Date from, Date until)
-        throws CannotDisseminateFormatException, NoSetHierarchyException, NoRecordsMatchException {
+    public OAIDataList<Header> getHeaders(MetadataFormat format, Set set, Date from, Date until) throws CannotDisseminateFormatException,
+            NoSetHierarchyException, NoRecordsMatchException {
         OAIDataList<Header> headerList = getSearchManager().searchHeader(format, set, from, until);
         if (headerList.isEmpty()) {
             throw new NoRecordsMatchException();

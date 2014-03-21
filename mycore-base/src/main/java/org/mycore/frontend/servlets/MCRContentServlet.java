@@ -287,9 +287,8 @@ public abstract class MCRContentServlet extends MCRServlet {
             endCurrentTransaction();
             // Copy the inputBufferSize stream to the outputBufferSize stream
             final long bytesCopied = IOUtils.copyLarge(in, out, new byte[outputBufferSize]);
-            long length = content.length();
-            if (length >= 0 && length != bytesCopied) {
-                throw new EOFException("Bytes to send: " + length + " actual: " + bytesCopied);
+            if (content.length() != bytesCopied) {
+                throw new EOFException("Bytes to send: " + content.length() + " actual: " + bytesCopied);
             }
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Wrote " + bytesCopied + " bytes.");
@@ -617,10 +616,7 @@ public abstract class MCRContentServlet extends MCRServlet {
 
             response.setHeader("ETag", eTag);
 
-            long lastModified = content.lastModified();
-            if (lastModified >= 0) {
-                response.setDateHeader("Last-Modified", lastModified);
-            }
+            response.setDateHeader("Last-Modified", content.lastModified());
             if (serveContent) {
                 response.setHeader("Content-Disposition", "inline;filename=\"" + filename + "\"");
             }

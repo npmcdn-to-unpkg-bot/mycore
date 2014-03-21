@@ -29,6 +29,7 @@ import org.mycore.common.config.MCRConfiguration;
 import org.mycore.common.config.MCRConfigurationException;
 import org.mycore.oai.classmapping.MCRClassificationAndSetMapper;
 import org.mycore.parsers.bool.MCRCondition;
+import org.mycore.services.fieldquery.MCRFieldDef;
 import org.mycore.services.fieldquery.MCRQueryCondition;
 import org.mycore.services.fieldquery.MCRQueryParser;
 import org.mycore.services.fieldquery.MCRSortBy;
@@ -74,7 +75,7 @@ public abstract class MCROAIUtils {
         String searchSortBy = config.getString(configField, defaultValue);
         for (StringTokenizer st = new StringTokenizer(searchSortBy, ",;:"); st.hasMoreTokens();) {
             String token = st.nextToken().trim();
-            String  field = token.split(" ")[0];
+            MCRFieldDef field = MCRFieldDef.getDef(token.split(" ")[0]);
             boolean order = "ascending".equalsIgnoreCase(token.split(" ")[1]);
             sortBy.add(new MCRSortBy(field, order));
         }

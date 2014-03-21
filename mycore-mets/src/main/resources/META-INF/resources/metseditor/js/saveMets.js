@@ -101,8 +101,7 @@ function save(){
    log(dojo.toJson(tree));
 
    var data = dojo.toJson(tree);
-   var saveButton =  dijit.byId('toolbar1.save');
-  
+   
    log("Submitting to Server...");
    log(data);
    dojo.xhrPost({
@@ -117,7 +116,6 @@ function save(){
             });
             onSuccessfulSaveDialog.attr("content", "Mets konnte erfolgreich erzeugt und gespeichert werden.");
             onSuccessfulSaveDialog.show();
-	    saveButton.setDisabled(false);
         },
         error: function(err, ioArgs){
             var secondDlg = new dijit.Dialog({
@@ -126,7 +124,6 @@ function save(){
             });
             secondDlg.attr("content", "Mets konnte nicht erzeugt und gespeichert werden. Bitte wenden Sie sich an den Administrator.");
             secondDlg.show();
-	    saveButton.setDisabled(false);
         }
    });
 }

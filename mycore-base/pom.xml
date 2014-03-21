@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <parent>
     <artifactId>mycore</artifactId>
     <groupId>org.mycore</groupId>
-    <version>2014.04-SNAPSHOT</version>
+    <version>2014.03</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -28,32 +27,6 @@
       </resource>
     </resources>
     <plugins>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>analyze</id>
-            <configuration>
-              <usedDependencies>
-                <!-- used by jdom 2.0.5 -->
-                <useDependency>jaxen:jaxen</useDependency>
-                <!-- used by commons-vfs -->
-                <useDependency>com.jcraft:jsch</useDependency>
-                <!-- used by svnkit -->
-                <useDependency>net.java.dev.jna:jna</useDependency>
-                <!-- used in hibernate tests -->
-                <useDependency>org.hsqldb:hsqldb</useDependency>
-                <!-- used by hibernate -->
-                <useDependency>org.slf4j:slf4j-log4j12</useDependency>
-                <!-- used by hibernate -->
-                <useDependency>org.javassist:javassist</useDependency>
-                <!-- used for XML catalog resolving -->
-                <useDependency>xml-resolver:xml-resolver</useDependency>
-              </usedDependencies>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>xml-maven-plugin</artifactId>
@@ -175,11 +148,14 @@
       <artifactId>junit</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.dbunit</groupId>
+      <artifactId>dbunit</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.jdom</groupId>
       <artifactId>jdom2</artifactId>
     </dependency>
     <dependency>
-      <!-- required by jdom 2.0.5 -->
       <groupId>jaxen</groupId>
       <artifactId>jaxen</artifactId>
     </dependency>
@@ -205,8 +181,16 @@
       <artifactId>jsch</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.hibernate</groupId>
+      <artifactId>jtidy-r8</artifactId>
+    </dependency>
+    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.axis</groupId>
+      <artifactId>axis</artifactId>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
@@ -215,6 +199,18 @@
     <dependency>
       <groupId>commons-lang</groupId>
       <artifactId>commons-lang</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-analyzers</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-queries</artifactId>
     </dependency>
     <dependency>
       <groupId>xerces</groupId>
@@ -241,6 +237,18 @@
       <artifactId>commons-fileupload</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.drewnoakes</groupId>
+      <artifactId>metadata-extractor</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.javamusictag</groupId>
+      <artifactId>jid3lib</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.tmatesoft.svnkit</groupId>
       <artifactId>svnkit</artifactId>
     </dependency>
@@ -253,6 +261,10 @@
       <artifactId>joda-time</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.axis</groupId>
+      <artifactId>axis-jaxrpc</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.xmlgraphics</groupId>
       <artifactId>fop</artifactId>
     </dependency>
@@ -261,8 +273,8 @@
       <artifactId>avalon-framework-impl</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.avalon.framework</groupId>
-      <artifactId>avalon-framework-api</artifactId>
+      <groupId>org.textmining</groupId>
+      <artifactId>tm-extractors</artifactId>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
@@ -273,8 +285,8 @@
       <artifactId>hibernate-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.hibernate.javax.persistence</groupId>
-      <artifactId>hibernate-jpa-2.1-api</artifactId>
+      <groupId>org.apache.ant</groupId>
+      <artifactId>ant</artifactId>
     </dependency>
     <dependency>
       <groupId>org.hsqldb</groupId>
@@ -298,15 +310,6 @@
     </dependency>
     <dependency>
       <groupId>com.sun.jersey</groupId>
-      <artifactId>jersey-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.jersey</groupId>
-      <artifactId>jersey-client</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.jersey</groupId>
       <artifactId>jersey-servlet</artifactId>
     </dependency>
     <dependency>
@@ -316,22 +319,6 @@
     <dependency>
       <groupId>com.sun.jersey.contribs</groupId>
       <artifactId>jersey-apache-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.jersey</groupId>
-      <artifactId>jersey-grizzly</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.grizzly</groupId>
-      <artifactId>grizzly-servlet-webserver</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.jersey.jersey-test-framework</groupId>
-      <artifactId>jersey-test-framework-core</artifactId>
     </dependency>
     <dependency>
       <groupId>javax.annotation</groupId>

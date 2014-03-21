@@ -1,6 +1,6 @@
 <project name="MyCoRe Components integration" xmlns:mcr="antlib:org.mycore.buildtools">
   <property name="components.order"
-            value="acl-editor2,broadcasting,buildtools,classbrowser,classeditor,indexing,iview2,migration-2014,session-listing,swf,mets,solr,mods,user2,webcli,webservices,z3950,oai,handle,wcms2,xeditor" />
+            value="acl-editor2,broadcasting,buildtools,classbrowser,classeditor,indexing,iview2,migration-2014,session-listing,swf,mets,solr,mods,user2,wcms,webcli,webservices,z3950,oai,handle,wcms2,xeditor" />
 
   <import file="${integration.dir}/helper.xml" />
   <taskdef resource="org/mycore/buildtools/antlib.xml"
@@ -99,6 +99,7 @@
   <target name="config" description="--> generates mycore.properties file">
     <property name="mycore.properties.target" location="${build.config}/mycore.properties" />
     <copy todir="${build.config}" overwrite="true" file="${integration.dir}/config/mycore.properties" />
+    <copy todir="${build.config}" overwrite="true" file="${integration.dir}/config/searchfields.xml" />
     <componentPreHook target="config" />
     <for param="component.name" list="${components.order}">
       <sequential>
@@ -112,6 +113,28 @@
         </for>
       </sequential>
     </for>
+    <!-- searchfields -->
+    <for param="searchfield.xml">
+      <fileset dir="${integration.dir}" includes="**/searchfields-metadata.xml" />
+      <sequential>
+        <xmltask source="${build.config}/searchfields.xml" dest="${build.config}/searchfields.xml">
+          <insert path="/:searchfields/:index[@id='metadata']/:field[position()=last()]"
+                  position="after"
+                  file="@{searchfield.xml}" />
+        </xmltask>
+      </sequential>
+    </for>
+    <for param="searchfield.xml">
+      <fileset dir="${integration.dir}" includes="**/searchfields-content.xml" />
+      <sequential>
+        <xmltask source="${build.config}/searchfields.xml" dest="${build.config}/searchfields.xml">
+          <insert path="/:searchfields/:index[@id='content']/:field[position()=last()]"
+                  position="after"
+                  file="@{searchfield.xml}" />
+        </xmltask>
+      </sequential>
+    </for>
+    <replace file="${build.config}/searchfields.xml" token='xmlns=""' />
     <componentHook target="config" />
   </target>
 

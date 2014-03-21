@@ -133,10 +133,12 @@ public class MCRQueryParser extends MCRBooleanClauseParser {
      */
     private MCRQueryCondition buildCondition(String field, String oper, String value, boolean vonbis) {
         try {
-            if (vonbis) {
+            MCRFieldDef def = MCRFieldDef.getDef(field);
+            String datatype = def.getDataType();
+            if (!"date".equals(datatype) && vonbis) {
                 value = normalizeHistoryDate(oper, value);
             }
-        } catch (MCRConfigurationException mcrExc) {
+        } catch(MCRConfigurationException mcrExc) {
             // ignore exception if field not exist:
             // this is ugly, but MCRFieldDef shouldn't appear here to hack MCRMetaHistoryDates
         }
@@ -205,7 +207,7 @@ public class MCRQueryParser extends MCRBooleanClauseParser {
      * simpler conditions if the condition value contains phrases surrounded 
      * by '...' or wildcard search with * or ?.
      */
-    public static MCRCondition<Object> normalizeCondition(MCRCondition<Object> cond) {
+    static MCRCondition<Object> normalizeCondition(MCRCondition<Object> cond) {
         if (cond == null) {
             return null;
         } else if (cond instanceof MCRSetCondition) {
@@ -215,8 +217,7 @@ public class MCRQueryParser extends MCRBooleanClauseParser {
             for (MCRCondition<Object> child : children) {
                 child = normalizeCondition(child);
                 if (child == null) {
-                } else if (child instanceof MCRSetCondition
-                    && sc.getOperator().equals(((MCRSetCondition) child).getOperator())) {
+                } else if (child instanceof MCRSetCondition && sc.getOperator().equals(((MCRSetCondition) child).getOperator())) {
                     // Replace (a AND (b AND c)) with (a AND b AND c), same for OR
                     sc.addAll(((MCRSetCondition<Object>) child).getChildren());
                 } else {
@@ -290,17 +291,15 @@ public class MCRQueryParser extends MCRBooleanClauseParser {
             MCRAndCondition<Object> ac = new MCRAndCondition<Object>();
             for (String value : values) {
                 if (value.startsWith("'")) {
-                    ac.addChild(new MCRQueryCondition(qc.getFieldName(), "phrase", value.substring(1,
-                        value.length() - 1)));
+                    ac.addChild(new MCRQueryCondition(qc.getFieldName(), "phrase", value.substring(1, value.length() - 1)));
                 } else if (value.startsWith("-'")) {
-                    ac.addChild(new MCRNotCondition<Object>(new MCRQueryCondition(qc.getFieldName(), "phrase", value
-                        .substring(2, value.length() - 1))));
+                    ac.addChild(new MCRNotCondition<Object>(new MCRQueryCondition(qc.getFieldName(), "phrase", value.substring(2,
+                                    value.length() - 1))));
                 } else if (value.contains("*") || value.contains("?")) {
                     ac.addChild(new MCRQueryCondition(qc.getFieldName(), "like", value));
                 } else if (value.startsWith("-")) // -word means "NOT word"
                 {
-                    MCRCondition<Object> subCond = new MCRQueryCondition(qc.getFieldName(), "contains",
-                        value.substring(1));
+                    MCRCondition<Object> subCond = new MCRQueryCondition(qc.getFieldName(), "contains", value.substring(1));
                     ac.addChild(new MCRNotCondition<Object>(subCond));
                 } else {
                     ac.addChild(new MCRQueryCondition(qc.getFieldName(), "contains", value));

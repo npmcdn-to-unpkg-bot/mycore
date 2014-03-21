@@ -53,10 +53,21 @@ var ACLEditor = function(){
 				}
 			});
 						
+			$("body").on("click", ".acle2-access-select", function() {
+				if ($(this).hasClass("icon-check-empty")){
+					$(this).addClass("icon-check");
+					$(this).removeClass("icon-check-empty");
+				}
+				else{
+					$(this).addClass("icon-check-empty");
+					$(this).removeClass("icon-check");
+				}
+			});
+						
 			$("body").on("click", "#acle2-button-remove-multi-access", function() {
-				var elm = $(".acle2-table-access-entry .acle2-access-select:checked").length;
+				var elm = $(".acle2-table-access-entry .icon-check").length;
 				if (elm > 0){
-					$(".acle2-table-access-entry .acle2-access-select:checked").each(function() {						
+					$(".acle2-table-access-entry .icon-check").each(function() {						
 						var access = $(this).parents(".acle2-table-access-entry");
 						var p = $("<p></p>");
 						p.html(access.find(".acle2-access-id").text() + " : " + access.find(".acle2-access-pool").text() + " : " + access.find(".acle2-access-rule:not(.select2-container)").val()); 
@@ -73,7 +84,7 @@ var ACLEditor = function(){
 				var json = {
 						  "access": [],
 						};
-				$(".acle2-table-access-entry .acle2-access-select:checked").each(function() {
+				$(".acle2-table-access-entry .icon-check").each(function() {
 					var access = $(this).parents(".acle2-table-access-entry");
 					access.addClass("acle2-delete");
 					json.access.push({"accessID": access.find(".acle2-access-id").text(), "accessPool": access.find(".acle2-access-pool").text()});
@@ -103,16 +114,13 @@ var ACLEditor = function(){
 			});
 			
 			$("body").on("hidden.bs.modal", "#acle2-lightbox-new-rule", function() {
+				$(".acle2-new-access-rule > select").select2("val", "");
 				$("#acle2-lightbox-new-rule-alert-area").removeClass("in");
 				$("#acle2-lightbox-rule-detail-table > .form-group.has-error").removeClass("form-group has-error");
 				$("#acle2-new-rule-desc").val("");
 				$(".acle2-new-rule-text").val("");
 			});
 			
-			$("body").on("click", ".acle2-new-rule-cancel", function(event) {
-				$(".acle2-new-access-rule > select").select2("val", "");
-			});
-						
 			$("body").on("click", ".tab", function(event) {
 				event.preventDefault();
 			});
@@ -148,11 +156,15 @@ var ACLEditor = function(){
 			});
 			
 			$("body").on("click", "#acle2-button-select-multi-access", function() {
-				if ($(this).is(":checked")){
-					$(".acle2-access-select:visible").prop("checked", true);
+				if ($(this).hasClass("icon-check-empty")){
+					$(".icon-check-empty:visible").addClass("icon-check");
+					$(".icon-check-empty:visible").prop("checked", true);
+					$(".icon-check-empty:visible").removeClass("icon-check-empty");
 				}
 				else{
-					$(".acle2-access-select:visible").prop("checked", false);
+					$(".icon-check:visible").addClass("icon-check-empty");
+					$(".icon-check:visible").prop("checked", false);
+					$(".icon-check:visible").removeClass("icon-check");
 				}
 			});
 			
@@ -199,7 +211,7 @@ var ACLEditor = function(){
 						editAccess(json);
 					}
 					else{
-						parent.html($(this).val( )+ "<i class='glyphicon glyphicon-pencil acle2-icon acle2-button-edit' title='" + geti18n("ACLE.title.edit") + "'></i>");
+						parent.html($(this).val( )+ "<i class='glyphicon glyphicon-pencil icon-plus icon-large acle2-icon acle2-button-edit' title='" + geti18n("ACLE.title.edit") + "'></i>");
 						parent.attr("title", $(this).val());
 						parent.removeClass("acle2-show-input");
 						$(this).remove();
@@ -215,14 +227,14 @@ var ACLEditor = function(){
 			
 			$("body").on("click", ".sort-table-head", function() {
 				if($(this).data("sort-dir") == "asc"){
-					$(".glyphicon-chevron-up").removeClass("glyphicon-chevron-up");
-					$(".glyphicon-chevron-down").removeClass("glyphicon-chevron-down");
-					$(this).children(".sort-icon").addClass("glyphicon-chevron-up")
+					$(".icon-chevron-up").removeClass("icon-chevron-up");
+					$(".icon-chevron-down").removeClass("icon-chevron-down");
+					$(this).children(".sort-icon").addClass("icon-chevron-up")
 				}
 				else{
-					$(".glyphicon-chevron-up").removeClass("glyphicon-chevron-up");
-					$(".glyphicon-chevron-down").removeClass("glyphicon-chevron-down");
-					$(this).children(".sort-icon").addClass("glyphicon-chevron-down")
+					$(".icon-chevron-up").removeClass("icon-chevron-up");
+					$(".icon-chevron-down").removeClass("icon-chevron-down");
+					$(this).children(".sort-icon").addClass("icon-chevron-down")
 				}
 			});
 			
@@ -239,7 +251,7 @@ var ACLEditor = function(){
 			});
 						
 			$("body").on("click", "#acle2-button-edit-multi-access", function() {
-				var elm = $(".acle2-table-access-entry .acle2-access-select:checked").length;
+				var elm = $(".acle2-table-access-entry .icon-check").length;
 				if (elm > 0){
 					$('#acle2-lightbox-multi-edit').modal('show');
 					ruleSelectorInstance.append("", $("#acle2-lightbox-multi-edit-select"));
@@ -258,13 +270,12 @@ var ACLEditor = function(){
 					var json = {
 							  "access": [],
 							};
-					$(".acle2-table-access-entry .acle2-access-select:checked").each(function() {
+					$(".acle2-table-access-entry .icon-check").each(function() {
 						var access = $(this).parents(".acle2-table-access-entry");
 						access.addClass("acle2-multi-edit");
 						json.access.push({"accessID": access.find(".acle2-access-id").text(), "accessPool": access.find(".acle2-access-pool").text(), "accessRule": $("#acle2-lightbox-multi-edit-select select").val()});
 					});
 					editMultiAccess(json);
-					$('#acle2-lightbox-multi-edit').modal('hide');
 					hideMultiEdit();
 				}
 				else{
@@ -275,7 +286,7 @@ var ACLEditor = function(){
 			
 			$("body").on("click", "#acle2-lightbox-multi-edit-plus", function() {
 				if ($("#acle2-lightbox-multi-edit-list:visible").length == 0){
-					$(".acle2-table-access-entry .acle2-access-select:checked").each(function() {						
+					$(".acle2-table-access-entry .icon-check").each(function() {						
 						var access = $(this).parents(".acle2-table-access-entry");
 						var p = $("<p></p>");
 						p.html(access.find(".acle2-access-id").text() + " : " + access.find(".acle2-access-pool").text() + " : " + access.find(".acle2-access-rule:not(.select2-container)").val()); 
@@ -405,7 +416,9 @@ var ACLEditor = function(){
 						showAlert(geti18n("ACLE.alert.access.edit.multi.error"));
 					}
 					ruleListInstance.updateCanDelete();
-					$(".acle2-access-select:checked").prop("checked", false);
+					$(".icon-check").addClass("icon-check-empty");
+					$(".icon-check").prop("checked", false);
+					$(".icon-check").removeClass("icon-check");
 				},
 				500: function(error) {
 					showAlert(geti18n("ACLE.alert.access.edit.error"));
@@ -428,7 +441,9 @@ var ACLEditor = function(){
 					}
 					else{
 						showAlert(geti18n("ACLE.alert.access.remove.errorElm"));
-						$(".acle2-access-select:checked").prop("checked", false);
+						$(".icon-check").addClass("icon-check-empty");
+						$(".icon-check").prop("checked", false);
+						$(".icon-check").removeClass("icon-check");
 					}
 					splitTable();
 					ruleListInstance.updateCanDelete();
@@ -751,7 +766,7 @@ var ACLEditor = function(){
 	
 	function showPage(num) {
 		$("#acle2-access-table tbody tr:not(.acle2-filter-hide)").addClass("acle2-page-hide");
-		$(".acle2-access-select:checked").parents(".acle2-table-access-entry").removeClass("acle2-page-hide");
+		$(".acle2-table-access-entry .icon-check").parents(".acle2-table-access-entry").removeClass("acle2-page-hide");
 		$("[data-page=" + num + "]").removeClass("acle2-page-hide");
 	}
 	
@@ -767,6 +782,8 @@ var ACLEditor = function(){
 		$("#acle2-lightbox-multi-edit-select").removeClass("form-group has-error");
 		$("#acle2-lightbox-multi-edit-list").html("");
 		$("#acle2-lightbox-multi-edit-list").hide();
+		$("#acle2-lightbox-multi-edit-plus").addClass("icon-plus");
+		$("#acle2-lightbox-multi-edit-plus").removeClass("icon-minus");		
 		$("#acle2-lightbox-multi-edit-select").find("select").select2("destroy");
 		$("#acle2-lightbox-multi-edit-select").find("select").remove();
 		$("#acle2-lightbox-multi-edit-plus").addClass("glyphicon-plus");

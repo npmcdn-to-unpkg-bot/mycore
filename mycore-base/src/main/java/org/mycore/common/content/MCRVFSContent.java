@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
 
 import org.apache.commons.vfs2.FileContent;
 import org.apache.commons.vfs2.FileContentInfoFactory;
