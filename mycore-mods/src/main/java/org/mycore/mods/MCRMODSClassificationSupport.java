@@ -592,9 +592,6 @@ public final class MCRMODSClassificationSupport {
          * If the given element is mods:typeOfResource, returns the MCRTypeOfResource mapping.
          */
         public static MCRTypeOfResource getAuthorityInfo(org.jdom2.Element modsElement) {
-            if (modsElement == null) {
-                return null;
-            }
             String name = modsElement.getName();
             String code = modsElement.getTextTrim();
             return getTypeOfResource(name, code);
@@ -604,9 +601,6 @@ public final class MCRMODSClassificationSupport {
          * If the given element is mods:typeOfResource, returns the MCRTypeOfResource mapping.
          */
         public static MCRTypeOfResource getAuthorityInfo(Element modsElement) {
-            if (modsElement == null) {
-                return null;
-            }
             String name = modsElement.getLocalName();
             String code = getText(modsElement).trim();
             return getTypeOfResource(name, code);
