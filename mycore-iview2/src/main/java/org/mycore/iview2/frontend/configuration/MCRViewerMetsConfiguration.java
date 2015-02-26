@@ -28,7 +28,7 @@ public class MCRViewerMetsConfiguration extends MCRViewerBaseConfiguration {
         setProperty("pdfCreatorURI", MCRIView2Tools.getIView2Property("PDFCreatorURI"));
 
         // script
-        addLocalScript("iview-client-mets.js", isDebugParameterSet(request));
+        addLocalScript("iview-client-mets.js");
 
         return this;
     }

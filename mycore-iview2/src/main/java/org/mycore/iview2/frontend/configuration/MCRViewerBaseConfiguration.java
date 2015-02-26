@@ -1,10 +1,10 @@
 package org.mycore.iview2.frontend.configuration;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.mycore.common.MCRSessionMgr;
 import org.mycore.frontend.MCRFrontendUtil;
 import org.mycore.frontend.servlets.MCRServlet;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * Base configuration for the mycore image viewer. Sets the following parameter:
@@ -15,7 +15,7 @@ import org.mycore.frontend.servlets.MCRServlet;
  * <li><b>mobile:</b> should the mobile or the desktop client started.</li>
  * <li><b>i18nURL:</b> URL to the i18n.json</li>
  * <li><b>lang:</b> current selected language</li>
- *
+ * 
  * @author Matthias Eichner
  */
 public abstract class MCRViewerBaseConfiguration extends MCRViewerConfiguration {
@@ -35,16 +35,15 @@ public abstract class MCRViewerBaseConfiguration extends MCRViewerConfiguration 
         setProperty("lang", MCRSessionMgr.getCurrentSession().getCurrentLanguage());
 
         // script & css
-        boolean developerMode = isDebugParameterSet(request);
-        addLocalScript("iview-client-base.js", developerMode);
+        addLocalScript("iview-client-base.js");
         if (mobile) {
-            addLocalScript("iview-client-mobile.js", developerMode);
+            addLocalScript("iview-client-mobile.js");
             addLocalCSS("mobile.css");
         } else {
-            if (this.isFramed(request)) {
-                addLocalScript("iview-client-frame.js", developerMode);
+            if(this.isFramed(request)){
+                addLocalScript("iview-client-frame.js");
             } else {
-                addLocalScript("iview-client-desktop.js", developerMode);
+                addLocalScript("iview-client-desktop.js");
             }
 
             addLocalCSS("default.css");
